@@ -5,127 +5,194 @@ import { createWorld, V } from './world.js';
 import { createRider } from './rider.js';
 import { createCourse } from './course.js';
 import { createSound } from './sound.js';
-import { writeSave } from './storage.js';
+import { writeSave, updateProgress } from './storage.js';
 import { bindInput } from './input.js';
+import { initialGameState, createPlayer, GAME_MODES, applyAction, useItem, advancePlayers, settlePlayers, makeResult } from './rules.js';
+import { resolveCollisions } from './collisions.js';
+import { createGameCamera } from './game-camera.js';
+import { createHomePreview } from './home-preview.js';
+export { initialGameState } from './rules.js';
 
-export const initialGameState = () => ({mode:'home',level:0,distance:0,speed:0,lane:1,x:0,jumpY:0,vy:0,duck:0,hp:3,fish:0,shield:false,invincible:0,elapsed:0});
-
-// Keep the animation clock outside Vue; publish a small HUD snapshot at 10 Hz.
 export function createGame(canvas, app) {
  const game=initialGameState(),save=app.save,notify=app.notify;
- const world=createWorld(canvas),riderModel=createRider(world),course=createCourse(world,game);
+ const world=createWorld(canvas),riders=app.appearance.players.map(config=>createRider(world,config));
+ const rider=riders[0].rider,course=createCourse(world,game);
  const {scene,camera,renderer,finish,updateWorld}=world;
- const {rider,shieldBubble,animateRider}=riderModel;
- const {generateCourse,clearParticles,burst,updateEntities,updateParticles}=course;
+ const homePreview=createHomePreview(world);
  const sound=createSound({enabled:app.soundEnabled,notify}),tone=sound.tone;
- const setTheme=index=>world.setTheme(index,app.dark.value);
- let previous=performance.now(),clockTime=0,menuDistance=0,frameId;
+ const cameraControl=createGameCamera(world,game,app),updateCamera=cameraControl.updateCamera;
+ let previous=performance.now(),clockTime=0,menuDistance=0,frameId,hudTick=0,themeIndex=-1,previewSeat=0;
+ let homePreviewCanvas=null,wardrobePreviewCanvas=null,previewDestination=null;
+ let resolveReady,rejectReady,readySettled=false,disposed=false;
+ const ready=new Promise((resolve,reject)=>{resolveReady=resolve;rejectReady=reject});
+ function settleReady(error){
+  if(readySettled)return;
+  readySettled=true;if(error)rejectReady(error);else resolveReady();
+  resolveReady=null;rejectReady=null;
+ }
+ const setTheme=index=>{themeIndex=index;world.setTheme(index,app.dark.value)};
+ function updateHUD(){Object.assign(app.state,{...game,players:game.players.map(p=>({...p})),markers:game.markers.map(m=>({...m}))})}
  function setMode(mode){
   game.mode=mode;updateHUD();
-  const target={paused:'resume',home:'start',won:'next',lost:'next'}[mode];
+  const target={paused:'resume',home:'start',won:'next',lost:'next',ended:'next'}[mode];
   if(target)nextTick(()=>document.getElementById(target)?.focus({preventScroll:true}));
  }
-function startLevel(index){
- if(app.error.value)return;
- if(!Number.isInteger(index)||index<0||index>=save.unlocked)return;
- tone('move');
- Object.assign(game,{level:index,distance:0,speed:LEVELS[index].speed,lane:1,x:0,jumpY:0,vy:0,duck:0,hp:3,fish:0,shield:false,invincible:0,elapsed:0});
- app.selected.value=index;setTheme(index);generateCourse(index);clearParticles();rider.visible=true;rider.position.set(0,0,0);rider.rotation.set(0,0,0);
- shieldBubble.visible=false;app.hitFlash.value=0;setMode('playing');updateHUD();canvas.focus();
- notify('stageToast',{number:index+1,name:app.levelName(index)},index===0?'firstTip':'rideTip');
-}
-function goHome(){
- setMode('home');course.clearCourse();clearParticles();finish.visible=false;shieldBubble.visible=false;rider.visible=true;
- game.jumpY=0;game.duck=0;setTheme(app.selected.value);app.clearToast();app.hitFlash.value=0;
-}
-function pauseGame(){if(game.mode==='playing'){setMode('paused');app.clearToast()}}
-function resumeGame(){if(game.mode==='paused'&&!app.error.value){setMode('playing');canvas.focus();previous=performance.now()}}
-function action(type){
- if(game.mode!=='playing'||app.error.value)return;
- if(type==='left'||type==='right'){game.lane=T.MathUtils.clamp(game.lane+(type==='left'?-1:1),0,2);tone('move')}
- if(type==='jump'&&game.jumpY===0){game.vy=9.5;game.duck=0;tone('jump')}
- if(type==='duck'&&game.jumpY===0){game.duck=.95;tone('duck')}
-}
-function hit(){
- if(game.invincible>0)return;
- game.invincible=1.8;
- if(game.shield){game.shield=false;shieldBubble.visible=false;tone('shield');notify('shieldHit');burst(V(game.x,1.8,0),'#7cf5ce',15)}
- else{game.hp--;tone('hit');notify(game.hp>0?'hit':'exhausted',{hp:game.hp});burst(V(game.x,1.4,0),'#f29262',12);if(game.hp===0)finishLevel(false)}
-}
-function collide(){
- for(const e of course.entities){
-  if(e.resolved||Math.abs(e.at-game.distance)>1.45)continue;
-  if(Math.abs(game.x-(e.lane-1)*3.4)>1.08)continue;
-  if(e.type==='fish'){
-   if(Math.abs(game.jumpY+1.35-e.height)<1.0){e.resolved=true;e.mesh.visible=false;game.fish++;tone('fish');burst(V(game.x,e.height,.2),'#ffc449',4)}
-  }else if(e.type==='shield'){
-   e.resolved=true;e.mesh.visible=false;game.shield=true;shieldBubble.visible=true;tone('shield');notify('pickup');
-  }else if(e.at-game.distance<.65){
-   e.resolved=true;
-   const safe=e.type==='hurdle'?game.jumpY>1.18:e.type==='gate'?game.duck>0&&game.jumpY<.1:false;
-   if(!safe)hit();
-   if(game.mode!=='playing')return;
+ function startRun({gameMode,levelIndex,seed}){
+  if(app.error.value||app.helpOpen.value||app.wardrobeOpen.value)return false;
+  if(!GAME_MODES.includes(gameMode))return false;
+  if(gameMode==='duo'&&app.isMobile.value){notify('mobileDuo');return false}
+  if(!Number.isInteger(levelIndex)||levelIndex<0||levelIndex>=LEVELS.length)return false;
+  if(gameMode!=='endless'&&levelIndex>=save.records[gameMode].unlocked)return false;
+  if(seed!==undefined&&(!Number.isInteger(seed)||seed<0||seed>0xffffffff))return false;
+  const runSeed=seed===undefined?crypto.getRandomValues(new Uint32Array(1))[0]:seed;
+  Object.assign(game,initialGameState(),{gameMode,level:gameMode==='endless'?0:levelIndex,seed:runSeed,
+   homePreviewPlayer:game.homePreviewPlayer,homePreviewAuto:game.homePreviewAuto,
+   players:gameMode==='duo'?[createPlayer(0),createPlayer(1)]:[createPlayer(0)]});
+  app.selectedMode.value=gameMode;app.selected.value=game.level;
+  restoreRiders();setTheme(game.level);course.generateCourse(game.level);course.clearParticles();
+  for(const model of riders){model.rider.position.set(0,0,0);model.rider.rotation.set(0,0,0);model.shieldBubble.visible=false}
+  app.hitFlash.value=0;tone('move');setMode('playing');canvas.focus();
+  if(gameMode!=='endless')notify('stageToast',{number:game.level+1,name:app.levelName(game.level)},game.level===0?'firstTip':'rideTip');
+  return true;
+ }
+ function startLevel(index){return startRun({gameMode:game.mode==='home'?app.selectedMode.value:game.gameMode,levelIndex:index,seed:game.mode!=='home'&&index===game.level?game.seed:undefined})}
+ function goHome(){
+  course.clearCourse();course.clearParticles();finish.visible=false;
+  game.result=null;game.markers=[];game.players.forEach(p=>{p.jumpY=0;p.duck=0});
+  restoreRiders();setTheme(app.selected.value);app.clearToast();app.hitFlash.value=0;setMode('home');
+ }
+ function pauseGame(){if(game.mode==='playing'){setMode('paused');app.clearToast()}}
+ function resumeGame(){if(game.mode==='paused'&&!app.error.value&&!app.helpOpen.value&&!app.wardrobeOpen.value){setMode('playing');canvas.focus();previous=performance.now()}}
+ function action({playerId,type}){
+  if(game.mode!=='playing'||app.error.value||app.helpOpen.value||app.wardrobeOpen.value)return false;
+  if(!Number.isInteger(playerId)||!game.players[playerId])return false;
+  const p=game.players[playerId];
+  if(p.status!=='running')return false;
+  if(type==='boost'&&p.boostRemaining>0){notify('boostActive');return false}
+  if(type==='boost'&&p.fishBalance<10){notify('boostEmpty');return false}
+  if(type==='item'&&game.gameMode==='items'&&!p.itemSlot){notify('itemEmpty');return false}
+  if(type==='item'&&p.itemSlot==='shield'&&p.shield){notify('shieldActive');return false}
+  const applied=type==='item'?game.gameMode==='items'&&useItem(p,course.entities):applyAction(p,type);
+  if(applied){tone(type==='jump'?'jump':type==='duck'?'duck':type==='item'?'shield':'move');updateHUD()}
+  return Boolean(applied);
+ }
+ function collisionEvent(kind,p,e){
+  if(kind==='fish')tone('fish');else if(kind==='hit'){tone('hit');notify(p.hp>0?'hit':'exhausted',{hp:p.hp})}
+  else{tone('shield');if(kind==='item')notify('itemPickup',{item:app.copy.value.items[p.itemSlot]});if(kind==='shield')notify('pickup');if(kind==='shieldHit')notify('shieldHit')}
+  course.burst(V(p.x,e.height,game.distance-p.distance),kind==='hit'?'#f29262':kind==='fish'?'#ffc449':'#7cf5ce',kind==='fish'?4:12);
+ }
+ function collide(previousPlayers){
+  if(game.mode!=='playing')return;
+  resolveCollisions(game,course.entities,{previous:previousPlayers,onEvent:collisionEvent});
+  const outcome=settlePlayers(game);if(outcome)finishRun(outcome);
+ }
+ function finishRun(outcome){
+  if(game.result)return;
+  const record=save.records[game.gameMode],bestScore=game.gameMode==='endless'?record.bestScore:record.best[game.level];
+  game.result=makeResult(game,{outcome,appearances:app.appearance.players,bestScore});
+  Object.assign(save,updateProgress(save,game.result));
+  game.recordSaved=app.saveWritable.value?writeSave(save,notify):false;
+  if(!app.saveWritable.value)notify('readError');
+  if(outcome==='won'){tone('win');for(let i=0;i<5;i++)course.burst(V((i-2)*1.5,3,-2),['#ffcb58','#ef8765','#7ad9bd'][i%3],12)}
+  app.clearToast();
+  setMode(outcome);
+ }
+ function endRun(){
+  if(game.mode!=='paused'||game.gameMode!=='endless')return false;
+  game.players.forEach(p=>{if(p.status==='running'){p.status='retired';p.speed=0}});game.speed=0;
+  finishRun('ended');return true;
+ }
+ function step(dt){
+  if(game.mode!=='playing')return;
+  if(!Number.isFinite(dt)||dt<0)throw new RangeError('Invalid timestep');
+  let remaining=dt;
+  while(remaining>0&&game.mode==='playing'){
+   const h=Math.min(remaining,1/90),previousPlayers=game.players.map(p=>({...p}));
+   course.streamCourse();advancePlayers(game,h);collide(previousPlayers);
+   remaining-=h;
+  }
+  if(game.gameMode==='endless'){
+   course.streamCourse();const nextTheme=Math.floor(game.distance/1000)%LEVELS.length;if(nextTheme!==themeIndex)setTheme(nextTheme);
   }
  }
-}
-function updateHUD(){Object.assign(app.state,game)}
-function finishLevel(won){
- const score=Math.floor(game.distance)+game.fish*25+(won?game.hp*150:0),stars=won?1+(game.hp===3?1:0)+(game.fish>=25?1:0):0;
- if(won){save.unlocked=Math.min(LEVELS.length,Math.max(save.unlocked,game.level+2));save.stars[game.level]=Math.max(save.stars[game.level],stars);tone('win')}
- save.best[game.level]=Math.max(save.best[game.level],score);writeSave(save,notify);setMode(won?'won':'lost');
- if(won)for(let i=0;i<5;i++)burst(V((i-2)*1.5,3,-2),['#ffcb58','#ef8765','#7ad9bd'][i%3],12);
-}
-function step(dt){
- if(game.mode!=='playing')return;
- const l=LEVELS[game.level];game.elapsed+=dt;game.speed=l.speed+(l.maxSpeed-l.speed)*Math.min(1,game.distance/l.length);
- game.distance=Math.min(l.length,game.distance+game.speed*dt);
- game.x=T.MathUtils.damp(game.x,(game.lane-1)*3.4,14,dt);
- if(game.vy!==0||game.jumpY>0){game.jumpY+=game.vy*dt-11*dt*dt;game.vy-=22*dt;if(game.jumpY<=0){game.jumpY=0;game.vy=0}}
- game.duck=Math.max(0,game.duck-dt);game.invincible=Math.max(0,game.invincible-dt);
- collide();if(game.mode==='playing'&&game.distance>=l.length)finishLevel(true);
-}
-const cameraTarget=V(),desiredCamera=V(),lookAt=V();
-function updateCamera(dt){
- const home=game.mode==='home',mobile=innerWidth<701,stackedHome=mobile&&innerHeight>500;
- if(home){
-  desiredCamera.set(stackedHome?8:7.5,5.8,stackedHome?10:8.6);
-  lookAt.set(stackedHome?0:-3.7,stackedHome?-.35:1.35,stackedHome?0:-.6);
- }else{desiredCamera.set(game.x*(mobile?.55:.22),mobile?7:6.5,mobile?14:11.8);lookAt.set(game.x*(mobile?.45:.13),1.0,mobile?-10:-12)}
- camera.position.lerp(desiredCamera,1-Math.exp(-dt*4));cameraTarget.lerp(lookAt,1-Math.exp(-dt*4));camera.lookAt(cameraTarget);
- camera.fov=T.MathUtils.damp(camera.fov,home?(stackedHome?50:45):(mobile?60:52),5,dt);camera.updateProjectionMatrix();
-}
-let hudTick=0;
-function frame(now){
- if(app.error.value)return;
- const dt=Math.min((now-previous)/1000,.05);previous=now;
- if(game.mode!=='paused')clockTime+=dt;
- if(game.mode==='playing'){
-  let remaining=dt;while(remaining>0){const h=Math.min(remaining,1/90);step(h);remaining-=h}
-  updateWorld(game.distance,clockTime);updateEntities(clockTime);
-  rider.position.x=game.x;rider.rotation.z=T.MathUtils.damp(rider.rotation.z,-((game.lane-1)*3.4-game.x)*.1,12,dt);
-  rider.rotation.y=T.MathUtils.damp(rider.rotation.y,-((game.lane-1)*3.4-game.x)*.07,12,dt);
-  rider.visible=game.invincible<=0||Math.floor(game.invincible*12)%2===0;
-  app.hitFlash.value=game.invincible>1.5?((game.invincible-1.5)*.28):0;
+ function selectMode(mode){
+  if(!GAME_MODES.includes(mode)||game.mode!=='home')return false;
+  app.selectedMode.value=mode;game.gameMode=mode;app.selected.value=mode==='endless'?0:save.records[mode].unlocked-1;
+  setTheme(app.selected.value);updateHUD();return true;
+ }
+ function selectLevel(index){
+  if(game.mode!=='home'||app.selectedMode.value==='endless'||!Number.isInteger(index)||index<0||index>=save.records[app.selectedMode.value].unlocked)return false;
+  app.selected.value=index;setTheme(index);return true;
+ }
+ function previewRider({playerId,config}){
+  if(game.mode!=='home'||!Number.isInteger(playerId)||!riders[playerId])throw new Error('Rider preview is only available at home');
+  previewSeat=playerId;riders[playerId].applyConfig(config);
+ }
+ function restoreRiders(){app.appearance.players.forEach((config,i)=>riders[i].applyConfig(config));previewSeat=0}
+ function attachHomePreview(destination){homePreviewCanvas=destination}
+ function attachWardrobePreview(destination){wardrobePreviewCanvas=destination}
+ function setHomePreviewPlayer(playerId){
+  if(playerId!==0&&playerId!==1)throw new RangeError('Unknown preview player');
+  game.homePreviewPlayer=playerId;updateHUD();
+ }
+ function setHomePreviewAuto(enabled){
+  if(typeof enabled!=='boolean')throw new TypeError('Preview auto rotation must be boolean');
+  game.homePreviewAuto=enabled;updateHUD();
+ }
+ function rotateHomePreview(delta){homePreview.rotate(delta);game.homePreviewAuto=false;updateHUD()}
+ function rotateWardrobePreview(delta){homePreview.rotate(delta);app.wardrobeAuto.value=false}
+ function renderPlayers(dt,homePreviewVisible){
+  if(game.mode==='paused')dt=0;
+  const home=game.mode==='home',seat=app.wardrobeOpen.value?previewSeat:0;
+  riders.forEach((model,i)=>{
+   const p=game.players[i],visible=home?i===seat&&!homePreviewVisible:Boolean(p)&&p.status==='running';
+   model.rider.visible=visible&&(home||p.invincible<=0||Math.floor(p.invincible*12)%2===0);
+   model.shieldBubble.visible=!home&&Boolean(p?.shield);
+   if(!visible)return;
+   const other=game.players[1-i];
+   const offset=!home&&other?.status==='running'&&p.lane===other.lane&&Math.abs(p.distance-other.distance)<3?(i===0?-.55:.55):0;
+   model.rider.position.set(home?(innerWidth<701&&innerHeight>500&&(!app.wardrobeOpen.value||innerHeight>innerWidth)?0:app.wardrobeOpen.value?-1.1:1.1):p.x+offset,home?0:p.jumpY,home?0:game.distance-p.distance);
+   model.rider.rotation.y=home?-.28:T.MathUtils.damp(model.rider.rotation.y,-((p.lane-1)*3.4-p.x)*.07,12,dt);
+   model.rider.rotation.z=home?Math.sin(clockTime*1.1)*.025:T.MathUtils.damp(model.rider.rotation.z,-((p.lane-1)*3.4-p.x)*.1,12,dt);
+   if(game.mode!=='paused')model.animateRider({dt,time:clockTime,moving:home||game.mode==='playing',jumpY:home?0:p.jumpY,duck:!home&&p.duck>0,speed:home?4:p.speed,boosting:!home&&p.boostRemaining>0});
+  });
+ }
+ function frame(now){
+  if(disposed)return;
+  if(app.error.value){settleReady(new Error(app.error.value.detail||app.error.value.title));api.dispose();return}
+  try{renderFrame(now)}catch(error){
+   app.error.value={title:'errorTitle',description:'errorHelp',detail:error.message};
+   console.error('Game frame failed',error);settleReady(error);api.dispose();
+  }
+ }
+ function renderFrame(now){
+  const dt=Math.min((now-previous)/1000,.05);previous=now;
+  if(game.mode==='playing'||game.mode==='home')clockTime+=dt;
+  if(game.mode==='playing'){
+   step(dt);updateWorld(game.distance,clockTime);course.updateEntities(clockTime);
+   app.hitFlash.value=Math.max(...game.players.map(p=>p.invincible>1.5?(p.invincible-1.5)*.28:0));
+  }else if(game.mode==='home'){menuDistance+=dt*4;updateWorld(menuDistance,clockTime)}
+  const wardrobe=app.wardrobeOpen.value;
+  const destination=game.mode!=='home'?null:wardrobe?(app.wardrobeScene.value?null:wardrobePreviewCanvas):homePreviewCanvas;
+  if(destination!==previewDestination){homePreview.attach(destination);previewDestination=destination}
+  const homePreviewVisible=homePreview.render({active:game.mode==='home',
+   config:wardrobe?app.wardrobeDraft.value:app.appearance.players[game.homePreviewPlayer],
+   auto:wardrobe?app.wardrobeAuto.value:game.homePreviewAuto,dt,time:clockTime,transparent:wardrobe});
+  renderPlayers(dt,homePreviewVisible);if(game.mode!=='paused')course.updateParticles(dt);
+  updateCamera(dt);game.markers=cameraControl.markers(riders);
   hudTick+=dt;if(hudTick>.09){updateHUD();hudTick=0}
- }else if(game.mode==='home'){
-  menuDistance+=dt*4;updateWorld(menuDistance,clockTime);rider.position.x=innerWidth<701&&innerHeight>500?0:1.1;rider.rotation.y=-.28;rider.rotation.z=Math.sin(clockTime*1.1)*.025;
+  renderer.render(scene,camera);
+  if(!destination||homePreviewVisible)settleReady();
+  frameId=requestAnimationFrame(frame);
  }
- if(game.mode!=='paused'){
-  animateRider(dt,clockTime,game.mode==='playing'||game.mode==='home',game.mode==='home'?0:game.jumpY,game.duck>0);
-  updateParticles(dt);
- }
- updateCamera(dt);renderer.render(scene,camera);frameId=requestAnimationFrame(frame);
-}
-
- const api={game,save,world,scene,camera,renderer,rider,V,startLevel,goHome,pauseGame,resumeGame,action,step,collide,updateCamera,updateWorld,updateEntities,
-  get entities(){return course.entities},get soundEnabled(){return app.soundEnabled.value},get audio(){return sound.audio},app,
-  selectLevel(index){if(!Number.isInteger(index)||index<0||index>=save.unlocked)return;app.selected.value=index;setTheme(index)},
+ const api={whenReady:()=>ready,game,save,world,scene,camera,renderer,rider,riders,V,app,startRun,startLevel,goHome,pauseGame,resumeGame,endRun,action,step,collide,
+  updateCamera,updateWorld,updateEntities:course.updateEntities,selectMode,selectLevel,previewRider,restoreRiders,
+  attachHomePreview,attachWardrobePreview,rotateWardrobePreview,setHomePreviewPlayer,rotateHomePreview,setHomePreviewAuto,
+  get entities(){return course.entities},get soundEnabled(){return app.soundEnabled.value},get audio(){return sound.audio},
   toggleSound(){app.soundEnabled.value=!app.soundEnabled.value;if(app.soundEnabled.value)tone('fish');if(game.mode==='playing')canvas.focus()},
-  setAppearance(){setTheme(game.mode==='home'?app.selected.value:game.level)},
-  setLanguage(){world.setLanguage(app.locale.value)},
-  dispose(){cancelAnimationFrame(frameId);unbind();course.dispose();world.dispose();sound.dispose()?.catch(error=>console.warn('Audio cleanup failed',error))},
+  setAppearance(){setTheme(game.mode==='home'?app.selected.value:themeIndex)},setLanguage(){world.setLanguage(app.locale.value)},
+  dispose(){if(disposed)return;disposed=true;settleReady(new Error('Game disposed before first frame'));cancelAnimationFrame(frameId);unbind();course.dispose();homePreview.dispose();riders.forEach(model=>model.dispose());world.dispose();sound.dispose()?.catch(error=>console.warn('Audio cleanup failed',error))},
  };
- const unbind=bindInput(canvas,api);
- setTheme(app.selected.value);api.setLanguage();updateCamera(10);frameId=requestAnimationFrame(frame);
+ const unbind=bindInput(canvas,api);setTheme(app.selected.value);api.setLanguage();updateHUD();updateCamera(10);frameId=requestAnimationFrame(frame);
  return api;
 }

@@ -1,0 +1,62 @@
+/* Home preview shares the game's renderer; compact layouts keep the world rider. */
+#rider-entry .home-rider-outfits { display: flex; gap: 12px; }
+#rider-entry .home-rider-outfit { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+#rider-entry .home-rider-showcase { display: none; }
+#rider-entry.home-rider-large { top: 112px; bottom: 40px; right: max(5vw, 36px); width: min(420px, 38vw); max-width: none; flex-direction: column; justify-content: safe center; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; padding: 4px; }
+#rider-entry.home-rider-large .home-rider-card { flex-shrink: 0; width: 100%; padding: 22px; border: 1px solid var(--border); border-radius: 20px; background: var(--surface); }
+#rider-entry.home-rider-large .home-rider-showcase { display: block; }
+.home-rider-heading { margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.home-rider-heading h2 { margin: 0; font-size: 23px; line-height: 1.2; letter-spacing: -.035em; }
+.home-rider-seats { display: flex; gap: 5px; }
+.home-rider-seats button[aria-pressed='true'], .home-rider-preview-tools button[aria-pressed='true'] { background: color-mix(in srgb, var(--orange) 18%, var(--paper)); text-decoration: underline; text-underline-offset: 3px; }
+.rider-preview-canvas { display: block; width: 100%; touch-action: none; cursor: grab; border-radius: 12px; }
+#home-rider-preview { height: clamp(300px, 39vh, 360px); }
+.rider-preview-canvas:active { cursor: grabbing; }
+.rider-preview-canvas:focus-visible + .home-rider-preview-tools p { text-decoration: underline; text-underline-offset: 3px; }
+.home-rider-preview-tools { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 16px 0 20px; }
+.home-rider-preview-tools p { margin: 0; font-size: 12px; color: var(--muted); }
+.home-rider-preview-tools small { display: block; margin-top: 4px; font-size: 10px; }
+#rider-entry.home-rider-large .home-rider-outfits { flex-direction: column; gap: 14px; }
+#rider-entry.home-rider-large .home-rider-outfit { align-items: stretch; gap: 10px; }
+#rider-entry.home-rider-large b { font-size: 15px; text-shadow: none; }
+#rider-entry.home-rider-large .primary { font-size: 16px; min-height: 56px; justify-content: center; }
+.outfit-thumb { display: block; width: 56px; height: 56px; object-fit: contain; flex: 0 0 56px; }
+.outfit-thumb-small { width: 32px; height: 32px; flex-basis: 32px; }
+#wardrobe .wardrobe-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+#wardrobe .wardrobe-tabs button, #wardrobe .wardrobe-options button { display: flex; align-items: center; gap: 7px; text-align: left; min-width: 0; overflow-wrap: anywhere; }
+#wardrobe .wardrobe-tabs button { padding: 6px; font-size: 11px; }
+#wardrobe .wardrobe-options button { flex: 1 1 135px; font-size: 12px; }
+#wardrobe .wardrobe-panel { overflow-y: auto; overscroll-behavior: contain; }
+@media (min-width: 701px) and (min-height: 501px) {
+  html #home { top: 112px; bottom: 40px; width: min(420px, 42vw); left: max(5vw, 28px); justify-content: safe center; }
+}
+@media (min-width: 701px) and (min-height: 501px) and (max-height: 790px) {
+  #rider-entry.home-rider-large .home-rider-card { padding: 18px; }
+}
+@media (max-width: 700px) and (orientation: portrait) {
+  #rider-entry .home-rider-outfit { gap: 3px; }
+  #wardrobe .wardrobe-panel { max-height: calc(100dvh - 262px - env(safe-area-inset-bottom)); }
+  #wardrobe .wardrobe-tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  #wardrobe .wardrobe-options button { flex-basis: 125px; }
+}
+
+/* The wardrobe shares the same draggable canvas component as the home card. */
+.wardrobe-model { position: absolute; left: max(3vw, 24px); top: 50%; transform: translateY(-50%); width: min(760px, 49vw, calc(100vw - max(3vw, 24px) - max(5vw, 24px) - min(450px, 43vw) - 16px)); padding: 0; background: transparent; border: 0; border-radius: 0; box-shadow: none; }
+#wardrobe-rider-preview { height: min(76dvh, 680px); border-radius: 0; }
+.wardrobe-model .home-rider-preview-tools { justify-content: center; margin: 8px 0 0; text-align: center; }
+.wardrobe-footer { display: grid; grid-template-columns: 1fr 1fr; align-items: stretch; gap: 10px; margin-top: 18px; }
+.wardrobe-footer .secondary { margin-top: 0; }
+.wardrobe-footer .primary { justify-content: center; gap: 0; padding-inline: 10px; }
+@media (max-width: 700px) and (orientation: portrait) {
+  .wardrobe-model { top: max(8px, env(safe-area-inset-top)); right: 12px; left: 12px; transform: none; width: auto; padding: 0; }
+  #wardrobe-rider-preview { height: max(110px, calc(210px - env(safe-area-inset-top))); }
+  .wardrobe-model .home-rider-preview-tools { margin-top: 4px; gap: 6px; }
+  .wardrobe-model .home-rider-preview-tools p { font-size: 11px; }
+  .wardrobe-model .home-rider-preview-tools small { font-size: 9px; margin-top: 2px; }
+}
+@media (max-width: 700px) and (orientation: landscape), (max-height: 500px) and (orientation: landscape) {
+  .wardrobe-model { left: max(10px, env(safe-area-inset-left)); width: 47vw; padding: 0; }
+  #wardrobe-rider-preview { height: max(100px, calc(100dvh - 68px)); }
+  .wardrobe-model .home-rider-preview-tools { margin-top: 8px; }
+  .wardrobe-model .home-rider-preview-tools small { font-size: 9px; }
+}

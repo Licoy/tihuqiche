@@ -8,35 +8,54 @@ async function installTestClock(context) {
     window.__PELICAN_TEST__ = true;
     window.requestAnimationFrame = callback => { window.testFrame = callback; return 1; };
     window.$ = id => document.getElementById(id);
-    for (const key of ['game', 'save', 'entities', 'startLevel', 'step', 'action', 'collide', 'goHome', 'pauseGame', 'resumeGame', 'updateCamera', 'renderer', 'scene', 'camera', 'rider', 'V', 'updateWorld', 'updateEntities', 'soundEnabled', 'audio', 'app']) {
+    for (const key of ['game', 'save', 'entities', 'startRun', 'selectMode', 'endRun', 'riders', 'startLevel', 'step', 'action', 'collide', 'goHome', 'pauseGame', 'resumeGame', 'updateCamera', 'renderer', 'scene', 'camera', 'rider', 'V', 'updateWorld', 'updateEntities', 'soundEnabled', 'audio', 'app']) {
       Object.defineProperty(window, key, { configurable: true, get: () => window.__pelicanTest?.[key] });
     }
   });
 }
 
 async function waitForGame(page) {
+  await page.waitForFunction(() => window.__pelicanTest && typeof window.testFrame === 'function', null, { polling: 50 });
+  // Startup now waits for an actual rendered frame; advance the held game RAF.
+  await page.evaluate(() => testFrame(performance.now()));
   await page.waitForFunction(() => window.__pelicanTest && $('loading')?.hidden && game.mode === 'home', null, { polling: 50 });
 }
 
-async function rideToFinish(page) {
-  return page.evaluate(() => {
-    for (let ticks = 0; ticks < 20000 && game.mode === 'playing'; ticks++) {
-      const ahead = entities.filter(e => !['fish', 'shield'].includes(e.type) && e.at > game.distance - 2).sort((a, b) => a.at - b.at)[0];
-      if (ahead && ahead.at - game.distance < 30) {
-        const blocked = entities.filter(e => !['fish', 'shield'].includes(e.type) && e.at === ahead.at).map(e => e.lane);
-        const safe = [0, 1, 2].find(lane => !blocked.includes(lane));
-        if (game.lane !== safe) action(game.lane < safe ? 'right' : 'left');
+// Drive only real actions and fixed-step physics; never set health, fish or finish state.
+async function rideToFinish(page, options = {}) {
+  return page.evaluate(({ seconds = 250, fishTarget = Infinity, boostSeat = null, useItems = false }) => {
+    let ticks = 0;
+    for (; ticks < seconds * 120 && game.mode === 'playing'; ticks++) {
+      if (game.players[0].fishCollected >= fishTarget) break;
+      for (const player of game.players.filter(p => p.status === 'running')) {
+        if (player.id === boostSeat) action({ playerId: player.id, type: 'boost' });
+        if (useItems) action({ playerId: player.id, type: 'item' });
+        const obstacles = entities.filter(e => ['hurdle', 'gate', 'crate'].includes(e.type));
+        const ahead = obstacles.filter(e => e.at > player.distance - 2).sort((a, b) => a.at - b.at)[0];
+        if (ahead && ahead.at - player.distance < 30) {
+          const blocked = obstacles.filter(e => e.at === ahead.at).map(e => e.lane);
+          const safe = [0, 1, 2].find(lane => !blocked.includes(lane));
+          if (safe === undefined) throw new Error('Generated obstacle row has no safe lane');
+          if (player.lane !== safe) action({ playerId: player.id, type: player.lane < safe ? 'right' : 'left' });
+        }
       }
       step(1 / 120);
     }
-    return { mode: game.mode, level: game.level, distance: game.distance, hp: game.hp, fish: game.fish, unlocked: save.unlocked, stars: save.stars[game.level] };
-  });
+    const record = save.records[game.gameMode];
+    return { mode: game.mode, level: game.level, distance: game.distance, hp: game.players[0].hp,
+      fish: game.players[0].fishCollected, unlocked: record.unlocked, stars: game.result?.stars,
+      result: game.result, recordStars: record.stars?.[game.level], players: game.players, ticks };
+  }, options);
 }
 
 async function openOffline(browser, target, errors, options = {}, legacy) {
-  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: 'zh-CN', colorScheme: 'light', ...options });
+  const { seedStorage = {}, ...browserOptions } = options;
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: 'zh-CN', colorScheme: 'light', ...browserOptions });
   await context.setOffline(true);
   await installTestClock(context);
+  await context.addInitScript(entries => {
+    for (const [key, value] of Object.entries(entries)) if (localStorage.getItem(key) === null) localStorage.setItem(key, value);
+  }, seedStorage);
   if (legacy) await context.addInitScript(value => {
     if (!localStorage.getItem('pelican-pedal-run-v1')) localStorage.setItem('pelican-pedal-run-v1', JSON.stringify(value));
   }, legacy);
@@ -52,22 +71,23 @@ async function verifyMigration({ browser, target, errors, check }) {
     const { context, page } = await openOffline(browser, target, errors, {}, old);
     try {
       const expected = { unlocked: finished ? 4 : 3, best: [...old.best, 0, 0, 0], stars: [...old.stars, 0, 0, 0] };
-      check(`v1 ${finished ? 'completed' : 'uncompleted'} third route migrates without losing scores`, await page.evaluate(() => JSON.parse(JSON.stringify(save))), expected);
+      check(`v1 ${finished ? 'completed' : 'uncompleted'} third route migrates without losing scores`, await page.evaluate(() => JSON.parse(JSON.stringify(save.records.campaign))), expected);
       check('legacy progress keeps the correct next-route lock', await page.locator('.route:disabled').count(), finished ? 2 : 3);
-      await page.evaluate(() => { startLevel(save.unlocked); });
+      await page.evaluate(() => { startLevel(save.records.campaign.unlocked); });
       check('a locked route cannot be started via the game API', await page.evaluate(() => game.mode), 'home');
       await page.locator('#start').click();
       await page.evaluate(() => {
         for (const entity of entities.filter(e => e.type === 'crate').slice(0, 3)) {
-          game.invincible = 0; game.distance = entity.at; game.x = (entity.lane - 1) * 3.4; collide();
+          game.players[0].invincible = 0; game.distance = game.players[0].distance = entity.at; game.players[0].x = (entity.lane - 1) * 3.4; collide();
         }
+        step(1 / 120);
       });
-      check('migrated progress writes a six-element v2 save', await page.evaluate(() => {
-        const current = JSON.parse(localStorage.getItem('pelican-pedal-run-v2'));
-        return current.best.length === 6 && current.stars.length === 6 && current.unlocked === save.unlocked;
+      check('migrated progress writes v3 and preserves the v1 source', await page.evaluate(() => {
+        const current = JSON.parse(localStorage.getItem('pelican-pedal-run-v3')).records.campaign;
+        return current.best.length === 6 && current.stars.length === 6 && current.unlocked === save.records.campaign.unlocked && localStorage.getItem('pelican-pedal-run-v1') !== null;
       }));
       await page.reload(); await waitForGame(page);
-      check('v2 reload retains the migrated legacy stars', await page.evaluate(() => save.stars), expected.stars);
+      check('v3 reload retains the migrated legacy stars', await page.evaluate(() => save.records.campaign.stars), expected.stars);
     } finally { await context.close(); }
   }
 }
@@ -127,17 +147,17 @@ async function verifyEnglish({ browser, target, errors, check }) {
     const pause = await page.locator('#pause-screen').textContent();
     check('English pause dialog is fully translated', [t.pauseTag, t.pauseTitle, t.pauseDesc, t.resume, t.restart, t.home].every(value => pause.includes(value)));
     await page.locator('#resume').click();
-    await page.evaluate(() => { for (const e of entities.filter(e => e.type === 'crate').slice(0, 3)) { game.invincible = 0; game.distance = e.at; game.x = (e.lane - 1) * 3.4; collide(); } });
+    await page.evaluate(() => { for (const e of entities.filter(e => e.type === 'crate').slice(0, 3)) { game.players[0].invincible = 0; game.distance = game.players[0].distance = e.at; game.players[0].x = (e.lane - 1) * 3.4; collide(); } step(1 / 120); });
     await page.waitForFunction(() => !$('result').hidden, null, { polling: 50 });
     const lost = await page.locator('#result').textContent();
-    check('English defeat dialog is fully translated', [t.lostTag, t.lostTitle, t.lostDesc, t.retry, t.home, t.rideStat, t.fishStat, t.scoreStat].every(value => lost.includes(value)));
+    check('English defeat dialog is fully translated', [t.modes.campaign, t.lostTitle, t.lostDesc, t.retry, t.home, t.rideStat, t.fishStat, t.totalScore].every(value => lost.includes(value)));
     await page.locator('#next').click();
     for (let level = 0; level < 6; level++) {
       const result = await rideToFinish(page);
       check(`English route ${level + 1} completes with three health and three stars`, [result.mode, result.hp, result.stars], ['won', 3, 3]);
       await page.waitForFunction(() => !$('result').hidden, null, { polling: 50 });
       const won = await page.locator('#result').textContent();
-      check(`English route ${level + 1} victory dialog is translated`, [level === 5 ? t.allTitle : t.wonTitle, level === 5 ? t.allTag : t.wonTag, level === 5 ? t.again : t.next, t.home].every(value => won.includes(value)) && !/[\u3400-\u9fff]/.test(won));
+      check(`English route ${level + 1} victory dialog is translated`, [level === 5 ? t.allTitle : t.wonTitle, t.modes.campaign, level === 5 ? t.again : t.next, t.home].every(value => won.includes(value)) && !/[\u3400-\u9fff]/.test(won));
       if (level < 5) await page.locator('#next').click();
     }
     await page.locator('#result-home').click();
@@ -191,10 +211,39 @@ async function verifyOnline({ browser, errors, check }) {
   } finally { await context.close(); await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }
 }
 
+
+async function verifyStorageIntegration({ browser, target, errors, check }) {
+  const old = { unlocked: 4, best: [1800, 2400, 3200, 1000, 0, 0], stars: [3, 2, 3, 0, 0, 0] };
+  const key = 'pelican-pedal-run-v2', raw = JSON.stringify(old);
+  const migrated = await openOffline(browser, target, errors, { seedStorage: { [key]: raw } });
+  try {
+    check('v2 progress loads into campaign without changing the source', await migrated.page.evaluate(() => save.records.campaign), old);
+    await migrated.page.evaluate(() => startRun({ gameMode: 'items', levelIndex: 0, seed: 27 }));
+    const result = await rideToFinish(migrated.page);
+    check('new-mode completion after migration preserves legacy campaign records', result.mode, 'won');
+    check('v3 write contains separate new-mode results and unchanged v2 bytes', await migrated.page.evaluate(({ key, raw, old }) => {
+      const v3 = JSON.parse(localStorage.getItem('pelican-pedal-run-v3'));
+      return localStorage.getItem(key) === raw && JSON.stringify(v3.records.campaign) === JSON.stringify(old)
+        && v3.records.items.best[0] === game.result.score && v3.records.items.unlocked === 2;
+    }, { key, raw, old }));
+  } finally { await migrated.context.close(); }
+  const corrupt = '{broken-v3';
+  const blocked = await openOffline(browser, target, errors, { seedStorage: { 'pelican-pedal-run-v3': corrupt, [key]: raw } });
+  try {
+    check('corrupt newest save visibly disables automatic persistence', await blocked.page.evaluate(() => !app.saveWritable.value));
+    await blocked.page.locator('#start').click();
+    const result = await rideToFinish(blocked.page);
+    check('a run with corrupt storage can still finish honestly', result.mode, 'won');
+    check('corrupt storage stays untouched and result reports unsaved', await blocked.page.evaluate(() => [localStorage.getItem('pelican-pedal-run-v3'), game.recordSaved]), [corrupt, false]);
+    check('unsaved result has a visible persistence warning', (await blocked.page.locator('#result').innerText()).includes('本次成绩未保存'));
+  } finally { await blocked.context.close(); }
+}
+
 async function verifyFeatures(options) {
+  await verifyStorageIntegration(options);
   await verifyMigration(options);
   await verifyPreferences(options);
   await verifyEnglish(options);
   await verifyOnline(options);
 }
-module.exports = { installTestClock, waitForGame, rideToFinish, verifyFeatures };
+module.exports = { installTestClock, waitForGame, rideToFinish, verifyFeatures, openOffline };

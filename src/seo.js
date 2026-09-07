@@ -1,8 +1,9 @@
 import { messages } from './locales.js';
 import { LEVELS } from './levels.js';
+import { shareUrl } from './share.js';
 
 const origin = 'https://tihuqiche.com';
-const canonical = locale => `${origin}${locale === 'en' ? '/en/' : '/'}`;
+const canonical = shareUrl;
 const escape = value => String(value).replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 
 function metadata(locale) {
@@ -26,7 +27,7 @@ function structuredData(locale) {
     description: messages[locale].description, url: canonical(locale), image: `${origin}/share-image.png`,
     inLanguage: locale === 'en' ? 'en' : 'zh-CN', genre: ['Adventure', 'Cycling'],
     applicationCategory: 'GameApplication', operatingSystem: 'Any WebGL-compatible browser',
-    gamePlatform: 'Web browser', playMode: 'SinglePlayer', isAccessibleForFree: true,
+    gamePlatform: 'Web browser', playMode: ['https://schema.org/SinglePlayer', 'https://schema.org/MultiPlayer', 'https://schema.org/CoOp'], isAccessibleForFree: true,
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     hasPart: LEVELS.map(level => ({ '@type': 'Thing', name: locale === 'en' ? level.en : level.name })),
   };

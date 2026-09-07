@@ -1,11 +1,14 @@
 <script setup>
 import { inject, onMounted, onUnmounted, ref } from 'vue';
 import { createGame } from '../game.js';
+import { waitForPageResources } from '../boot-tasks.js';
 const app = inject('app'), canvas = ref(null), emit = defineEmits(['ready']);
 const { copy } = app;
 let engine;
-onMounted(() => {
+onMounted(async () => {
   try {
+    // Nonblocking production CSS must apply before measuring the scene and preview.
+    await waitForPageResources(window);
     engine = createGame(canvas.value, app);
     if (window.__PELICAN_TEST__ === true) window.__pelicanTest = engine;
     emit('ready', engine);

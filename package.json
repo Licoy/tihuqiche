@@ -14,12 +14,16 @@
     "dev": "vite --host 127.0.0.1",
     "preview": "vite preview --host 127.0.0.1",
     "build": "node scripts/build.mjs",
-    "test": "pnpm run build && node tests/game.cjs",
-    "assets": "node scripts/generate-social-assets.mjs"
+    "test": "pnpm run test:unit && pnpm run build && node tests/game.cjs",
+    "assets": "node scripts/generate-social-assets.mjs",
+    "assets:outfits": "node scripts/generate-outfit-thumbnails.mjs",
+    "test:unit": "node --test tests/*.test.js",
+    "share:qr": "node scripts/generate-share-qr.mjs"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "6.0.8",
     "playwright": "1.62.1",
+    "qrcode": "1.5.4",
     "vite": "8.2.2",
     "vite-plugin-singlefile": "2.3.3"
   },

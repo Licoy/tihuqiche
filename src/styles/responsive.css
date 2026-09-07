@@ -1,5 +1,7 @@
+@import "./home-outfits.css";
+
 @media (max-height: 790px) and (min-width: 701px) {
-  #home { top: 100px; bottom: 24px; justify-content: flex-start; }
+  #home { top: 100px; bottom: 24px; justify-content: safe center; }
   h1 { font-size: 58px; margin-bottom: 12px; }
   .intro { margin-bottom: 15px; font-size: 12px; }
   .route-art { height: 44px; }
@@ -15,15 +17,12 @@
   .github-link { width: 44px; padding: 10px; }
 }
 @media (max-width: 700px) {
-  .theme-control { width: 44px; max-width: 44px; flex: none; }
-  .theme-control > svg { left: 50%; transform: translateX(-50%); }
-  .theme-control select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; padding: 0; }
   .topbar { top: max(14px, env(safe-area-inset-top)); left: max(16px, env(safe-area-inset-left)); right: max(16px, env(safe-area-inset-right)); gap: 8px; }
-  .brand { gap: 7px; }
-  .brand-name { font-size: 17px; letter-spacing: .02em; }
-  .brand-sub { font-size: 10px; }
-  .brand-mark { width: 44px; height: 44px; }
-  .top-actions { gap: 6px; }
+  .brand { gap: 5px; }
+  .brand-name { font-size: 16px; letter-spacing: .02em; }
+  .brand-sub { font-size: 9px; }
+  .brand-mark { width: 34px; height: 34px; }
+  .top-actions { gap: 4px; }
   #shade { background: linear-gradient(0deg, var(--shade-solid) 0%, color-mix(in srgb, var(--shade-solid) 96%, transparent) 29%, transparent 86%); }
   #home { left: max(16px, env(safe-area-inset-left)); right: max(16px, env(safe-area-inset-right)); width: auto; top: auto; bottom: max(16px, env(safe-area-inset-bottom)); max-height: calc(100dvh - 92px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); justify-content: flex-start; }
   h1 { font-size: 45px; margin: 0 0 12px; line-height: 1.15; }
@@ -35,20 +34,19 @@
   .route-art > svg { width: 25px; height: 25px; }
   .route-name { font-size: 11px; }
   .route-copy { padding: 7px 8px; }
-  .route.active .route-copy { padding: 7px 7px 6px; }
   .route-state { font-size: 9px; margin-top: 3px; }
   .primary { padding: 13px 17px; min-height: 51px; font-size: 15px; }
   .home-bottom { margin-top: 5px; font-size: 9px; }
   .text-btn { font-size: 10px; }
   .scene-caption { display: none; }
-  #hud { top: calc(max(14px, env(safe-area-inset-top)) + 62px); left: max(16px, env(safe-area-inset-left)); right: max(16px, env(safe-area-inset-right)); gap: 10px; }
+  #hud { top: calc(max(14px, env(safe-area-inset-top)) + 46px); left: max(16px, env(safe-area-inset-left)); right: max(16px, env(safe-area-inset-right)); gap: 10px; }
   .stage-panel { width: auto; flex: 1; min-width: 0; max-width: 270px; padding: 11px 13px; }
   .stage-top { font-size: 10px; gap: 8px; }
   .counters { min-width: 83px; padding: 9px 11px; }
   .fish-counter { font-size: 23px; }
   .hearts { font-size: 15px; letter-spacing: 1px; }
   .speed { font-size: 8px; }
-  .shield-indicator { top: calc(max(14px, env(safe-area-inset-top)) + 162px); right: max(16px, env(safe-area-inset-right)); font-size: 10px; }
+  .shield-indicator { top: calc(max(14px, env(safe-area-inset-top)) + 146px); right: max(16px, env(safe-area-inset-right)); font-size: 10px; }
   #controls { display: none; }
   .touch-controls { display: flex; left: max(16px, env(safe-area-inset-left)); right: max(16px, env(safe-area-inset-right)); }
   #toast { font-size: 12px; top: 35%; width: max-content; max-width: 88vw; }
@@ -57,27 +55,13 @@
   .panel p { font-size: 12px; }
   .help-row { padding: 8px 0; }
 }
-@media (max-width: 540px) {
-  .topbar { flex-wrap: wrap; row-gap: 7px; }
-  .brand { width: 100%; }
-  .top-actions { width: 100%; justify-content: flex-end; gap: 7px; }
-  .theme-control { flex: none; justify-content: center; max-width: 44px; }
-  .theme-control select { width: 100%; }
-  #home { max-height: calc(100dvh - 130px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
-  #hud { top: calc(max(14px, env(safe-area-inset-top)) + 108px); }
-  .shield-indicator { top: calc(max(14px, env(safe-area-inset-top)) + 208px); }
-}
 @media (max-width: 370px) {
-  .topbar { left: 12px; right: 12px; }
-  .top-actions { gap: 5px; }
-  .theme-control select { font-size: 11px; }
   #home { left: 12px; right: 12px; }
   h1 { font-size: 36px; }
   .intro { font-size: 11px; }
   .route-art { height: 37px; padding-right: 9px; }
   .route-name { font-size: 10px; }
   .route-copy { padding-left: 6px; padding-right: 6px; }
-  .route.active .route-copy { padding-left: 5px; padding-right: 5px; }
   .home-bottom { gap: 6px; }
   .text-btn { max-width: 46%; text-align: right; }
   .touch-controls button { width: 51px; height: 54px; }
@@ -99,9 +83,6 @@
   .brand-sub { font-size: 9px; }
   .top-actions { width: auto; gap: 5px; }
   .theme-control { flex: none; }
-  .small-btn { min-height: 44px; }
-  .icon-btn, .language-btn, .github-link { width: 44px; }
-  .theme-control select { font-size: 11px; }
   #home { left: max(20px, env(safe-area-inset-left)); right: auto; top: calc(max(8px, env(safe-area-inset-top)) + 53px); bottom: max(10px, env(safe-area-inset-bottom)); width: min(47vw, 365px); max-height: none; justify-content: flex-start; }
   #shade { background: linear-gradient(90deg, var(--shade-solid), color-mix(in srgb, var(--shade-solid) 90%, transparent) 35%, transparent 78%); }
   h1 { font-size: 35px; margin-bottom: 8px; }
@@ -113,7 +94,6 @@
   .route-art > svg { width: 23px; height: 23px; }
   .route-number { font-size: 11px; top: 6px; left: 7px; }
   .route-copy { padding: 5px 6px; }
-  .route.active .route-copy { padding: 5px 5px 4px; }
   .route-name { font-size: 10px; }
   .route-state { font-size: 8px; min-height: 12px; }
   .primary { min-height: 45px; padding: 10px 14px; font-size: 13px; }
@@ -145,6 +125,145 @@
   .route { scroll-snap-align: start; }
   .route-art { height: 37px; }
   .route-copy { padding-top: 6px; padding-bottom: 6px; }
-  .route.active .route-copy { padding-top: 6px; padding-bottom: 5px; }
   .home-bottom { margin-top: 3px; }
+}
+
+/* Upgrade controls keep the existing island palette and single scene canvas. */
+.mode-picker { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+.mode-picker button, .wardrobe-tabs button, .wardrobe-options button, .wardrobe-colours button { min-height: 44px; padding: 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); font-size: 11px; }
+button[aria-pressed='true']:is(.mode-picker button, .wardrobe-tabs button, .wardrobe-options button, .wardrobe-colours button) { background: color-mix(in srgb, var(--orange) 18%, var(--paper)); text-decoration: underline; text-underline-offset: 3px; }
+.mode-note, .duo-instructions, .endless-route { font-size: 11px; line-height: 1.6; color: var(--muted); margin: 9px 0 12px; }
+#home > * { flex-shrink: 0; }
+#rider-entry { position: fixed; z-index: 3; right: max(36px, env(safe-area-inset-right)); bottom: 36px; display: flex; gap: 12px; max-width: 52vw; }
+#rider-entry > div { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+#rider-entry b { font-size: 12px; text-shadow: 0 1px 8px var(--paper); }
+#rider-entry button { font-size: 12px; white-space: normal; }
+.wardrobe-overlay { justify-content: flex-end; background: transparent; backdrop-filter: none; padding-right: max(5vw, 24px); }
+.wardrobe-panel { width: min(450px, 43vw); max-height: calc(100dvh - 48px); }
+.wardrobe-panel h2 { font-size: 27px; }
+.wardrobe-tabs { display: flex; flex-wrap: wrap; gap: 5px; }
+.wardrobe-options, .wardrobe-colours { border: 0; border-top: 1px solid var(--border); padding: 12px 0; margin: 16px 0 0; display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.wardrobe-options legend, .wardrobe-colours legend { font-size: 12px; padding-right: 8px; }
+.wardrobe-colours button { display: flex; align-items: center; gap: 7px; }
+.wardrobe-colours i { width: 17px; height: 17px; border: 1px solid #173e3d44; border-radius: 50%; }
+.player-counters { display: flex; gap: 10px; }
+.player-counters .counters { max-width: 230px; }
+.counters > b { font-size: 11px; }
+.player-effect { font-size: 10px; margin-top: 5px; color: var(--muted); }
+.boost-control, .item-control { pointer-events: auto; display: flex; width: 100%; flex-direction: column; align-items: stretch; gap: 4px; min-height: 44px; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: var(--ink); padding: 7px; margin-top: 7px; font: inherit; font-size: 11px; text-align: left; }
+.boost-control small { font-size: 9px; }
+.boost-control progress { width: 100%; height: 5px; accent-color: var(--orange); }
+.item-control { flex-direction: row; align-items: center; justify-content: space-between; }
+.rider-marker { position: fixed; z-index: 2; transform: translate(-50%, -110%); pointer-events: none; background: var(--paper); color: var(--ink); border: 2px solid var(--orange); border-radius: 6px; padding: 3px 7px; font-size: 12px; font-weight: 800; }
+#controls { max-width: calc(100vw - 32px); white-space: normal; font-size: 10px; }
+.touch-controls { display: flex; }
+.touch-controls button { min-width: 44px; min-height: 44px; }
+.touch-actions { align-items: flex-end; }
+.result-panel { width: 490px; padding: 20px; }
+.result-card { background: var(--paper); color: var(--ink); padding: 4px; }
+.result-brand { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+.result-brand img { object-fit: contain; }
+.result-brand b { font-size: 16px; }
+.record-label { margin-left: auto; font-size: 10px; color: var(--orange); font-weight: 750; }
+.result-card h2 { font-size: 26px; margin: 10px 0; }
+.result-card .stars { font-size: 23px; margin: 6px 0; letter-spacing: 7px; }
+.result-main-score { display: flex; align-items: baseline; gap: 12px; font-variant-numeric: tabular-nums; }
+.result-main-score b { font-size: 48px; line-height: 1.1; overflow-wrap: anywhere; }
+.result-main-score span { font-size: 11px; color: var(--muted); }
+.result-card .stats { margin: 12px 0; padding: 9px 0; }
+.result-card .stats b { font-size: 21px; }
+.result-riders { display: flex; gap: 12px; font-size: 10px; }
+.result-riders > div { flex: 1; min-width: 0; }
+.result-riders span { display: block; color: var(--muted); line-height: 1.6; }
+.result-share { display: flex; gap: 14px; align-items: center; margin: 12px 0; }
+.share-qr { width: 128px; height: 128px; flex: 0 0 128px; background: #fff; }
+.share-qr svg { display: block; width: 128px; height: 128px; }
+.result-share b { font-size: 14px; overflow-wrap: anywhere; }
+.result-share p { font-size: 11px; margin: 6px 0 0; }
+.share-actions { display: flex; gap: 8px; margin-bottom: 10px; }
+.share-actions .secondary { margin-top: 0; }
+.result-panel #result-desc, .result-panel .copy-status, .result-panel .save-error { font-size: 11px; margin: 8px 0; }
+.manual-copy { display: block; font-size: 12px; margin-bottom: 12px; }
+.manual-copy textarea { display: block; width: 100%; min-height: 90px; resize: vertical; padding: 8px; color: var(--ink); background: var(--paper); border: 1px solid var(--border); border-radius: 6px; font: inherit; }
+.save-error { color: var(--orange) !important; }
+@media (min-width: 701px) {
+  #home { justify-content: safe center; }
+  #home h1 { font-size: clamp(48px, 5vw, 76px); margin-bottom: 10px; }
+  #home .intro { margin-bottom: 14px; }
+}
+@media (max-width: 700px) and (orientation: portrait) {
+  #home { top: auto; bottom: max(12px, env(safe-area-inset-bottom)); max-height: calc(100dvh - 310px - env(safe-area-inset-bottom)); padding: 3px; }
+  #home h1 { font-size: 36px; margin-bottom: 8px; }
+  #home .intro { font-size: 10px; margin-bottom: 10px; }
+  #home .routes { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 100px; overflow-x: auto; overflow-y: hidden; padding-bottom: 4px; }
+  #rider-entry { top: 240px; bottom: auto; left: 16px; right: 16px; max-width: none; justify-content: flex-end; }
+  #rider-entry > div { gap: 3px; }
+  #rider-entry b { font-size: 10px; }
+  #rider-entry button { font-size: 10px; min-height: 44px; padding: 7px; }
+  .wardrobe-overlay { align-items: flex-end; padding: 12px; }
+  .wardrobe-panel { width: 100%; max-height: calc(100dvh - 250px); padding: 18px; }
+  .wardrobe-panel h2 { font-size: 24px; }
+  .player-counters { gap: 5px; }
+  .player-counters .counters { max-width: 155px; }
+  .duo-hud { flex-wrap: wrap; }
+  .duo-hud .stage-panel { max-width: none; width: 100%; flex-basis: 100%; }
+  .duo-hud .player-counters { width: 100%; justify-content: space-between; }
+  .boost-control { font-size: 10px; }
+  .touch-controls { left: 10px; right: 10px; gap: 8px; }
+  .touch-pair { gap: 5px; }
+  .touch-controls button { width: 44px; height: 48px; border-radius: 10px; }
+  .touch-controls small { font-size: 8px; }
+  .result-panel { padding: 14px; }
+  .result-card h2 { font-size: 23px; }
+  .result-share { gap: 10px; }
+  .result-share b { font-size: 12px; }
+  .result-main-score b { font-size: 42px; }
+}
+@media (max-width: 370px) {
+  .topbar { left: max(10px, env(safe-area-inset-left)); right: max(10px, env(safe-area-inset-right)); }
+  html[lang='en'] .brand-name { font-size: 14px; letter-spacing: 0; }
+  .brand-mark { width: 32px; height: 32px; }
+  #home { left: 10px; right: 10px; }
+  .mode-picker button { font-size: 10px; padding: 5px; }
+  .touch-controls { left: 5px; right: 5px; gap: 4px; }
+  .touch-pair { gap: 4px; }
+  .result-brand b { font-size: 13px; }
+  .record-label { font-size: 9px; }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .topbar { flex-wrap: nowrap; left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); gap: 6px; }
+  .brand { width: auto; flex-shrink: 0; gap: 6px; }
+  .top-actions { width: auto; gap: 4px; }
+  .brand-sub { display: block; font-size: 9px; letter-spacing: .02em; }
+  .brand-name { font-size: 14px; }
+  .brand-mark { width: 36px; height: 36px; }
+  #home { top: 65px; bottom: 10px; left: 15px; width: 46vw; max-height: none; }
+  #home h1 { font-size: 32px; }
+  .mode-picker { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #rider-entry { left: auto; right: 12px; top: auto; bottom: 12px; max-width: 48vw; }
+  #rider-entry b { font-size: 10px; }
+  #rider-entry button { min-height: 44px; font-size: 10px; padding: 5px 8px; }
+  .player-counters .counters { max-width: 180px; padding: 6px 8px; }
+  .boost-control small { display: none; }
+  .touch-controls { bottom: 10px; }
+  .touch-controls button { width: 44px; height: 44px; }
+  .duo-hud .stage-panel { max-width: 180px; }
+  .duo-hud .player-counters { gap: 5px; }
+  .duo-hud .counters { max-width: 155px; }
+  .result-panel { max-width: 490px; }
+}
+/* Device capability controls keyboard/touch visibility; width only changes layout. */
+#controls:not([hidden]) { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 14px; }
+
+/* Compact header only; game touch controls keep their 44px minimum. */
+@media (max-width: 700px), (max-height: 500px) and (orientation: landscape) {
+  .top-actions .small-btn { width: 32px; height: 32px; min-height: 32px; padding: 0; gap: 0; border-radius: 9px; font-size: 11px; }
+  .top-actions .small-btn svg { width: 14px; height: 14px; }
+  .top-actions .github-link span { display: none; }
+}
+
+@media (max-width: 700px) and (orientation: landscape), (max-height: 500px) and (orientation: landscape) {
+  .wardrobe-overlay { padding: 10px; }
+  .wardrobe-panel { width: 47vw; max-height: calc(100dvh - 20px); padding: 16px; }
+  .wardrobe-panel h2 { font-size: 22px; }
 }

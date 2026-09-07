@@ -1,3 +1,4 @@
+import { upgradeMessages } from './locales-upgrade.js';
 export const messages = {
   zh: {
     brand: '鹈鹕骑车', logo: '鹈鹕骑单车', title: '鹈鹕骑车 · 免费 3D 骑车游戏',
@@ -48,6 +49,8 @@ export const messages = {
     stageToast: 'Route {number} · {name}', firstTip: '← → Steer · ↑ Jump · ↓ Duck', rideTip: 'Find your rhythm and ride to the finish', shieldHit: 'Your shield blocked the collision', hit: 'Ouch! {hp} health left', exhausted: 'This little bike needs a rest', pickup: 'Shield collected · Blocks one collision', finish: 'FINISH',
   },
 };
+
+for (const locale of ['zh', 'en']) Object.assign(messages[locale], upgradeMessages[locale]);
 
 export function translate(locale, key, values = {}) {
   return messages[locale][key].replace(/\{(\w+)\}/g, (_, name) => String(values[name]));

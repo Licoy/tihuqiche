@@ -1,3 +1,4 @@
+import { createModelPrimitives } from './rider-primitives.js';
 import * as T from 'three';
 import { LEVELS } from './levels.js';
 import { createScenery } from './scenery.js';
@@ -7,7 +8,10 @@ export const V = (x=0,y=0,z=0) => new T.Vector3(x,y,z);
 export function createWorld(canvas) {
 const scene = new T.Scene();
 const camera = new T.PerspectiveCamera(48,innerWidth/innerHeight,.1,340);
-const renderer = new T.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance'});
+const renderer = new T.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance'});
+renderer.debug.onShaderError=(gl,program,vertex,fragment)=>{
+ throw new Error(`Shader compilation failed: ${gl.getProgramInfoLog(program)}\n${gl.getShaderInfoLog(vertex)}\n${gl.getShaderInfoLog(fragment)}`);
+};
 renderer.setPixelRatio(Math.min(devicePixelRatio,1.75));
 renderer.setSize(innerWidth,innerHeight);
 renderer.outputColorSpace=T.SRGBColorSpace;
@@ -19,19 +23,7 @@ sunLight.position.set(-24,40,10);sunLight.castShadow=true;
 Object.assign(sunLight.shadow.camera,{left:-17,right:17,top:28,bottom:-18,near:1,far:100});
 sunLight.shadow.mapSize.set(1024,1024);sunLight.shadow.bias=-.0006;
 sunLight.shadow.normalBias=.035;scene.add(sunLight);
-const mats=new Map(), geos={box:new T.BoxGeometry(1,1,1),sphere:new T.SphereGeometry(1,16,10),ico:new T.IcosahedronGeometry(1,0),cylinder:new T.CylinderGeometry(1,1,1,9),cone:new T.ConeGeometry(1,1,7),torus:new T.TorusGeometry(1,.13,8,24)};
-function material(color){if(!mats.has(color))mats.set(color,new T.MeshStandardMaterial({color,roughness:.82,flatShading:true}));return mats.get(color)}
-function mesh(geometry,color,options={}){
- const obj=new T.Mesh(typeof geometry==='string'?geos[geometry]:geometry,material(color));
- if(options.p)obj.position.set(...options.p);if(options.s)obj.scale.set(...options.s);if(options.r)obj.rotation.set(...options.r);
- obj.castShadow=options.shadow!==false;obj.receiveShadow=true;(options.parent||scene).add(obj);return obj;
-}
-function box(color,p,s,parent=scene){return mesh('box',color,{p,s,parent})}
-function orb(color,p,s,parent=scene){return mesh('sphere',color,{p,s,parent})}
-function rod(color,a,b,options={}){
- const av=V(...a),bv=V(...b),d=bv.clone().sub(av),o=mesh('cylinder',color,{p:av.add(bv).multiplyScalar(.5).toArray(),s:[options.radius||.045,d.length(),options.radius||.045],parent:options.parent});
- o.quaternion.setFromUnitVectors(V(0,1,0),d.normalize());return o;
-}
+const {mesh,box,orb,rod,material,geos,mats}=createModelPrimitives(scene);
 function instances(color,items,geometry=geos.box){
  const o=new T.InstancedMesh(geometry,material(color),items.length),dummy=new T.Object3D();
  items.forEach((item,i)=>{dummy.position.set(...item.p);dummy.scale.set(...item.s);dummy.rotation.set(...(item.r||[0,0,0]));dummy.updateMatrix();o.setMatrixAt(i,dummy.matrix)});
@@ -101,5 +93,5 @@ function dispose(){
  materials.forEach(m=>{if(m.map)textures.add(m.map);m.dispose()});textures.forEach(t=>t.dispose());
  geometries.forEach(g=>g.dispose());sunLight.shadow.dispose();renderer.dispose();
 }
-return {scene,camera,renderer,mesh,box,orb,rod,finish,decor,skyline,setTheme,setLanguage,updateWorld,resize,dispose};
+return {scene,camera,renderer,mesh,box,orb,rod,material,finish,decor,skyline,setTheme,setLanguage,updateWorld,resize,dispose};
 }
