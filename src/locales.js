@@ -1,8 +1,8 @@
 export const messages = {
   zh: {
-    brand: '鹈鹕骑车', logo: '鹈鹕骑单车', title: '鹈鹕出逃记 · 免费 3D 骑车游戏',
+    brand: '鹈鹕骑车', logo: '鹈鹕骑单车', title: '鹈鹕骑车 · 免费 3D 骑车游戏',
     description: '骑上小单车，和鹈鹕一起穿越珊瑚海岸、雨林遗迹、落日神庙、荒漠、骷髅岛与上海滩；免费 3D 骑行闯关游戏，支持键盘、触屏和离线游玩',
-    headline: ['鹈鹕', '出逃记'], intro: ['长嘴巴，小单车，还有一路好风景', '迎着海风出发，下一站是自由'],
+    headline: ['鹈鹕', '骑车'], intro: ['长嘴巴，小单车，还有一路好风景', '迎着海风出发，下一站是自由'],
     routes: '选择你的骑行路线', locked: '尚未解锁', unlockHint: '通关前一关解锁', ready: '等待出发',
     start: '出发，去兜风', best: '本关最佳 {score} 分', journey: '六段旅程 · 一路顺风', helpOpen: '第一次骑？看这里',
     github: 'GitHub 源码仓库（新窗口打开）', soundOn: '音效：开', soundOff: '音效：关', pause: '暂停游戏',

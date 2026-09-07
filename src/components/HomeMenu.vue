@@ -8,7 +8,7 @@ const { state, selected, save, copy, locale, t, levelName, startLevel, helpOpen 
 
 <template>
   <main id="home" :hidden="state.mode !== 'home'">
-    <h1>{{ copy.headline[0] }}{{ locale === 'en' ? ' ' : '' }}<br><span>{{ copy.headline[1] }}</span></h1>
+    <h1>{{ copy.headline[0] }}{{ locale === 'en' ? ' ' : '' }}<br v-if="locale === 'en'"><span>{{ copy.headline[1] }}</span></h1>
     <p class="intro">{{ copy.intro[0] }}<br>{{ copy.intro[1] }}</p>
     <div class="route-caption">{{ copy.routes }}</div>
     <div id="routes" class="routes"><RouteCard v-for="(_, index) in LEVELS" :key="LEVELS[index].id" :index="index" /></div>

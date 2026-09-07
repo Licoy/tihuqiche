@@ -28,7 +28,6 @@
   #home { left: max(16px, env(safe-area-inset-left)); right: max(16px, env(safe-area-inset-right)); width: auto; top: auto; bottom: max(16px, env(safe-area-inset-bottom)); max-height: calc(100dvh - 92px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); justify-content: flex-start; }
   h1 { font-size: 45px; margin: 0 0 12px; line-height: 1.15; }
   html[lang='en'] h1 { font-size: clamp(28px, 8vw, 36px); }
-  h1 br { display: none; }
   .intro { font-size: 12px; margin-bottom: 16px; line-height: 1.65; }
   .route-caption { margin-bottom: 8px; font-size: 10px; }
   .routes { gap: 8px; margin-bottom: 13px; }
@@ -106,7 +105,7 @@
   #home { left: max(20px, env(safe-area-inset-left)); right: auto; top: calc(max(8px, env(safe-area-inset-top)) + 53px); bottom: max(10px, env(safe-area-inset-bottom)); width: min(47vw, 365px); max-height: none; justify-content: flex-start; }
   #shade { background: linear-gradient(90deg, var(--shade-solid), color-mix(in srgb, var(--shade-solid) 90%, transparent) 35%, transparent 78%); }
   h1 { font-size: 35px; margin-bottom: 8px; }
-  h1 br, .intro br { display: none; }
+  .intro br { display: none; }
   .intro { font-size: 10px; line-height: 1.6; margin-bottom: 10px; }
   .route-caption { font-size: 9px; margin-bottom: 6px; }
   .routes { gap: 6px; margin-bottom: 9px; }

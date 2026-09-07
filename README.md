@@ -1,4 +1,4 @@
-# 鹈鹕出逃记 · Pelican Pedal Run
+# 鹈鹕骑车 · Pelican Pedal Run
 
 长嘴巴，小单车，还有一整座海岛
 
@@ -8,7 +8,7 @@
 
 > 在线地址在首次 Pages 部署成功后可用；下载 HTML 后使用浏览器打开，即可离线游玩
 
-![鹈鹕出逃记游戏画面](docs/preview.png)
+![鹈鹕骑车游戏画面](docs/preview.png)
 
 ## 游戏内容
 

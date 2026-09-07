@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.24.0",
-  "description": "鹈鹕出逃记：可离线游玩的单文件 3D 骑车闯关游戏",
+  "description": "鹈鹕骑车：可离线游玩的单文件 3D 骑车闯关游戏",
   "homepage": "https://tihuqiche.com/",
   "license": "MIT",
   "engines": {
