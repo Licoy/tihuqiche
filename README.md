@@ -151,6 +151,9 @@ PLAYWRIGHT_CHANNEL=chrome pnpm test
 └── LICENSE
 ```
 
+## 社区支持
+- [LinuxDO](https://linux.do)
+
 ## 许可证
 
 项目使用 [MIT License](LICENSE)，Three.js `0.160.1` 使用其原始 [MIT License](vendor/three/LICENSE)
