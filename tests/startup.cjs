@@ -66,7 +66,7 @@ async function main() {
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   let browser;
   try {
-    browser = await chromium.launch({ headless: true, channel: process.env.PLAYWRIGHT_CHANNEL || 'chrome' });
+    browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {}) });
     const origin = `http://127.0.0.1:${server.address().port}`;
     for (const scenario of [{ name: 'css-first', delay: 'js' }, { name: 'js-first', delay: 'css' }, { name: 'english', route: '/en/' }, { name: 'offline', offline: true }]) await runCase(browser, origin, scenario);
   } finally { if (browser) await browser.close(); await new Promise(resolve => server.close(resolve)); }

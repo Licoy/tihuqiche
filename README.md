@@ -4,7 +4,7 @@
 
 一个使用 **Vue 3 + Vite 8 + Three.js / WebGL** 制作的 3D 骑车游戏，包含闯关、无尽、电脑本地双人合作和道具闯关四种模式，自动向前骑行，通过变道、跳跃和低头躲开障碍，沿途收集小鱼，骑过海岸、雨林、神庙、荒漠、骷髅岛与上海滩
 
-[在线游玩 · tihuqiche.com](https://tihuqiche.com/) · [Play in English](https://tihuqiche.com/en/) · [下载单文件 HTML](https://github.com/Licoy/tihuqiche/raw/refs/heads/main/dist/offline.html) · [构建与部署记录](https://github.com/Licoy/tihuqiche/actions/workflows/pages.yml)
+[在线游玩 · tihuqiche.com](https://tihuqiche.com/) · [Play in English](https://tihuqiche.com/en/) · [下载单文件 HTML](https://tihuqiche.com/offline.html) · [构建与部署记录](https://github.com/Licoy/tihuqiche/actions/workflows/pages.yml)
 
 > 在线地址在首次 Pages 部署成功后可用；下载 HTML 后使用浏览器打开，即可离线游玩
 
@@ -118,7 +118,7 @@ pnpm preview
 
 标题、描述、关卡名称和 JSON-LD 与界面共享 `src/locales.js`、`src/levels.js`；两种语言的静态 HTML 都包含实际页面内容、canonical、hreflang、Open Graph 与 Twitter Card，不依赖执行 JavaScript 才能抓取；`public/` 提供 favicon、1200×630 分享图片、robots.txt 和 sitemap.xml
 
-构建会检查预渲染内容、在线图片文件与离线资源引用；在线 HTML 仅简短引用 `dist/LICENSE.txt`，该文件包含项目和 Three.js 的 MIT 许可证，离线单文件仍携带完整许可说明，仓库原始许可证保留；`dist/` 随仓库保留，提交代码前请同步构建产物
+构建会检查预渲染内容、在线图片文件与离线资源引用；在线 HTML 仅简短引用 `dist/LICENSE.txt`，该文件包含项目和 Three.js 的 MIT 许可证，离线单文件仍携带完整许可说明，仓库原始许可证保留；`dist/` 由本地或 CI 构建生成，不纳入版本管理
 
 场景、角色和游戏工厂保留原有模型与物理步骤，因此整体初始化函数超过 50 行，内部操作仍独立分组；这些工厂统一管理动画、事件和 GPU 资源的销毁，避免为一次性模型构造增加额外接口
 
@@ -139,6 +139,8 @@ pnpm test
 ```bash
 PLAYWRIGHT_CHANNEL=chrome pnpm test
 ```
+
+构建后可用 `PLAYWRIGHT_CHANNEL=chrome node tests/startup.cjs` 单独检查启动流程，直接服务 `dist/` 并在真实浏览器中覆盖 CSS 先完成、脚本先完成、英文页面和断网离线文件，检查模型、装扮图片与开始骑行；CSS 已完成或被重复等待时不会继续等待旧事件
 
 模块测试覆盖规则、外观、进度迁移与损坏保护、不可变更新和分享错误处理；浏览器测试覆盖在线与离线加载、六关流程、存档迁移、键盘与触屏、主题和语言切换、预渲染 SEO、favicon 与分享资源，以及手机竖屏和横屏布局；关卡检查推进真实物理逻辑，触屏和设备主题检查由浏览器模拟完成
 
