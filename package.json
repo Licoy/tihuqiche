@@ -1,0 +1,18 @@
+{
+  "name": "tihuqiche",
+  "version": "1.0.0",
+  "private": true,
+  "description": "鹈鹕出逃记：可离线游玩的单文件 3D 骑车闯关游戏",
+  "homepage": "https://tihuqiche.com/",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "npm run build && node tests/game.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
+}
