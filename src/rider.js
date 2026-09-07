@@ -1,3 +1,7 @@
+import * as T from 'three';
+import { V } from './world.js';
+
+export function createRider({ scene, mesh, box, orb, rod }) {
 const rider=new T.Group();scene.add(rider);
 const bike=new T.Group();rider.add(bike);
 const wheels=[];
@@ -72,4 +76,6 @@ function animateRider(dt,time,moving,jumpY,duck){
  head.rotation.y=-.22+Math.sin(time*1.2)*.09;
  scarfTail.rotation.set(Math.sin(time*9)*.13,-.2+Math.sin(time*6)*.2,0);
  rider.position.y=jumpY;bike.rotation.x=jumpY>0?Math.sin(jumpY)*.06:0;
+}
+return { rider, shieldBubble, animateRider };
 }

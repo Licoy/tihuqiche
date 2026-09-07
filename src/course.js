@@ -1,3 +1,9 @@
+import * as T from 'three';
+import { V } from './world.js';
+import { LEVELS } from './levels.js';
+
+export function createCourse(world, state) {
+const {scene,mesh,orb,box,finish}=world;
 let entities=[];
 const obstacleRoot=new T.Group();scene.add(obstacleRoot);
 const markerTextures=new Map();
@@ -40,7 +46,7 @@ function makeEntity(type,lane,at,height=1.35){
  const e={type,lane,at,height,mesh:g,resolved:false};entities.push(e);return e;
 }
 function generateCourse(index){
- obstacleRoot.clear();entities=[];
+ clearCourse();
  const l=LEVELS[index];let seed=7919+index*104729;
  const random=()=>{seed=(seed*16807)%2147483647;return(seed-1)/2147483646};
  for(let n=0,at=70;at<l.length-35;n++,at+=l.gap){
@@ -57,13 +63,13 @@ function generateCourse(index){
 }
 function updateEntities(time){
  for(const e of entities){
-  e.mesh.position.z=game.distance-e.at;
+  e.mesh.position.z=state.distance-e.at;
   e.mesh.visible=!e.resolved&&e.mesh.position.z>-160&&e.mesh.position.z<9;
   if(e.type==='fish'||e.type==='shield'){
    e.mesh.rotation.y=time*2;e.mesh.position.y=e.height+Math.sin(time*3+e.at)*.12;
   }
  }
- finish.position.z=game.distance-LEVELS[game.level].length;
+ finish.position.z=state.distance-LEVELS[state.level].length;
  finish.visible=finish.position.z>-170&&finish.position.z<15;
 }
 const particles=[];
@@ -81,3 +87,7 @@ function updateParticles(dt){
  }
 }
 function clearParticles(){particles.forEach(p=>scene.remove(p.mesh));particles.length=0}
+function clearCourse(){obstacleRoot.clear();entities=[]}
+function dispose(){clearCourse();clearParticles();markerTextures.forEach(m=>{m.map.dispose();m.dispose()});markerTextures.clear()}
+return {get entities(){return entities},generateCourse,updateEntities,burst,updateParticles,clearParticles,clearCourse,dispose};
+}

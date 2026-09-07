@@ -1,41 +1,61 @@
 import assert from 'node:assert/strict';
-import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
+import { readFile, writeFile, mkdir, rm } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { Script } from 'node:vm';
+import { build, createServer } from 'vite';
+import { renderSeo } from '../src/seo.js';
+import { messages } from '../src/locales.js';
+import { LEVELS } from '../src/levels.js';
 
-const root = new URL('../', import.meta.url);
-const read = path => readFileSync(new URL(path, root), 'utf8');
-const template = read('src/index.html');
-const engine = read('vendor/three/three.min.js');
-const modules = ['world', 'rider', 'course', 'game', 'input'];
-const code = modules.map(name => read(`src/${name}.js`)).join('\n');
-const engineMarker = '<!-- THREE_ENGINE -->';
-const codeMarker = '// GAME_CODE';
-const logoMarker = '__PELICAN_LOGO__';
-const logo = readFileSync(new URL('src/assets/pelican-logo.png', root)).toString('base64');
-
-assert.equal(template.split(engineMarker).length, 2, '模板必须包含一个引擎占位符');
-assert.equal(template.split(codeMarker).length, 2, '模板必须包含一个游戏代码占位符');
-assert.equal(template.split(logoMarker).length, 2, '模板必须包含一个 Logo 占位符');
-assert(!/<\/script/i.test(engine + code), '内嵌代码中不能包含 script 结束标签');
-new Script(engine, { filename: 'vendor/three/three.min.js' });
-new Script(code, { filename: 'game.js' });
-
-const licenses = read('LICENSE') + '\nThree.js 0.160.1\n' + read('vendor/three/LICENSE');
+const root = fileURLToPath(new URL('../', import.meta.url));
+const read = path => readFile(`${root}${path}`, 'utf8');
+const licenses = await read('LICENSE') + '\nThree.js 0.160.1\n' + await read('vendor/three/LICENSE');
 assert(!licenses.includes('-->'), '许可证不能提前结束 HTML 注释');
-// A single-file artifact is intentional: the game and engine remain portable offline.
-const html = template
-  .replace(logoMarker, () => `data:image/png;base64,${logo}`)
-  .replace(engineMarker, () => `<!--\n${licenses}\n-->\n<script>${engine}</script>`)
-  .replace(codeMarker, () => code);
-// Canonical links describe the page URL; they do not load external resources.
-const resourceHTML = html
-  .replace(/<link\b[^>]*>/gi, tag => /\brel=["']canonical["']/i.test(tag) ? '' : tag)
-  .replace(/<img\b[^>]*\bsrc="data:image\/png;base64,[A-Za-z0-9+/=]+"[^>]*>/gi, '');
-assert(!/<(?:script|link|img|audio|video)\b[^>]*\b(?:src|href)\s*=/i.test(resourceHTML), '构建产物必须内嵌所有资源');
-assert(!html.includes(engineMarker) && !html.includes(codeMarker) && !html.includes(logoMarker), '不能遗留模板占位符');
 
-mkdirSync(new URL('dist/', root), { recursive: true });
-const destination = new URL('dist/index.html', root);
-writeFileSync(destination, html);
-console.log(`Built ${fileURLToPath(destination)} (${Buffer.byteLength(html).toLocaleString('en-US')} bytes, fully embedded)`);
+function pageHtml({ template, markup, locale }) {
+  assert(template.includes('<!--app-html-->'), '页面必须保留预渲染占位符');
+  return template.replace(/<html lang="[^"]*"/, `<html lang="${locale === 'en' ? 'en' : 'zh-CN'}"`)
+    .replace(/<!--seo:start-->[\s\S]*?<!--seo:end-->/, () => renderSeo(locale))
+    .replace('<!--app-html-->', () => markup)
+    .replace('</body>', () => `<!--\n${licenses}\n-->\n</body>`);
+}
+
+await build({ root });
+const template = await read('dist/index.html');
+const server = await createServer({ root, server: { middlewareMode: true, hmr: false }, appType: 'custom' });
+let chineseMarkup;
+try {
+  const { render } = await server.ssrLoadModule('/src/entry-server.js');
+  for (const locale of ['zh', 'en']) {
+    const markup = await render(locale);
+    if (locale === 'zh') chineseMarkup = markup;
+    const html = pageHtml({ template, markup, locale });
+    assert(html.includes(messages[locale].title), '静态页面必须含对应语言标题');
+    for (const level of LEVELS) assert(html.includes(locale === 'en' ? level.en : level.name), '静态页面必须含全部关卡');
+    const directory = `${root}dist/${locale === 'en' ? 'en/' : ''}`;
+    await mkdir(directory, { recursive: true });
+    await writeFile(`${directory}index.html`, html);
+  }
+} finally {
+  await server.close();
+}
+
+const offlineDirectory = `${root}dist/.offline`;
+try {
+  await build({ root, mode: 'offline', build: { outDir: offlineDirectory, copyPublicDir: false } });
+  let offline = pageHtml({ template: await read('dist/.offline/index.html'), markup: chineseMarkup, locale: 'zh' });
+  for (const filename of ['favicon-48.png', 'favicon-96.png', 'favicon.ico']) {
+    const data = (await readFile(`${root}public/${filename}`)).toString('base64');
+    offline = offline.replaceAll(`href="./${filename}"`, `href="data:image/${filename.endsWith('.ico') ? 'x-icon' : 'png'};base64,${data}"`);
+  }
+  const resources = offline.match(/<(?:script|img|link|audio|video)\b[^>]*>/gi) || [];
+  for (const tag of resources) {
+    if (/<link\b/i.test(tag) && /rel="(?:canonical|alternate)"/.test(tag)) continue;
+    const url = tag.match(/\b(?:src|href)="([^"]+)"/);
+    assert(!url || url[1].startsWith('data:'), `离线包包含外部资源: ${tag.slice(0, 120)}`);
+  }
+  assert(!offline.includes('<!--app-html-->'), '离线包不能遗留模板占位符');
+  await writeFile(`${root}dist/offline.html`, offline);
+  console.log(`Built Chinese + English static pages and offline.html (${Buffer.byteLength(offline).toLocaleString('en-US')} bytes)`);
+} finally {
+  await rm(offlineDirectory, { recursive: true, force: true });
+}

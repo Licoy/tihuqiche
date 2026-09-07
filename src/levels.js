@@ -1,0 +1,8 @@
+export const LEVELS = [
+  { id: 'coast', name: '珊瑚海岸', en: 'Coral Coast', tag: '海风刚好，冒险开始', tagEn: 'A sea breeze and a fresh start', length: 600, speed: 15, maxSpeed: 20, gap: 36, sky: '#bce6db', sea: '#60c5b6', road: '#577674', night: '#132b39' },
+  { id: 'jungle', name: '雨林遗迹', en: 'Jungle Ruins', tag: '穿过雨林，追上好奇心', tagEn: 'Follow your curiosity through the canopy', length: 850, speed: 18, maxSpeed: 24, gap: 32, sky: '#a9c9b6', sea: '#509f8b', road: '#596a59', night: '#182c29' },
+  { id: 'temple', name: '落日神庙', en: 'Sunset Temple', tag: '向着落日，再骑远一点', tagEn: 'One more mile into the sunset', length: 1100, speed: 21, maxSpeed: 28, gap: 29, sky: '#f4c6a3', sea: '#87b8ae', road: '#8c7970', night: '#352735' },
+  { id: 'desert', name: '荒漠', en: 'Desert Dunes', tag: '穿过沙丘，追逐远方的绿洲', tagEn: 'Across the dunes, towards the oasis', length: 1250, speed: 22, maxSpeed: 29, gap: 29, sky: '#eed3a5', sea: '#dcb779', road: '#a27f59', night: '#302937' },
+  { id: 'skull', name: '骷髅岛', en: 'Skull Island', tag: '绕过白骨岩，驶入神秘海雾', tagEn: 'Past the skull rocks and into the mist', length: 1400, speed: 23, maxSpeed: 30, gap: 29, sky: '#aabfc0', sea: '#648e94', road: '#56646b', night: '#1b2335' },
+  { id: 'shanghai', name: '上海滩', en: 'The Bund', tag: '沿着黄浦江，骑过华灯初上', tagEn: 'Ride the riverfront as the city lights up', length: 1600, speed: 24, maxSpeed: 32, gap: 30, sky: '#d5c6bd', sea: '#789eaa', road: '#697580', night: '#1c263f' },
+];

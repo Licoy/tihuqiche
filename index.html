@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#bce6db">
+  <script>
+    let appearance = 'system';
+    try { appearance = localStorage.getItem('pelican-theme') || 'system'; }
+    catch (error) { console.warn('Could not read appearance preference', error); }
+    const dark = appearance === 'dark' || (appearance !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+    document.querySelector('meta[name="theme-color"]').content = dark ? '#142b2c' : '#bce6db';
+  </script>
+  <!--seo-head-->
+  <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png">
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png">
+  <link rel="shortcut icon" href="/favicon.ico">
+</head>
+<body>
+  <noscript><style>#loading { display: none; }</style><p>启用 JavaScript 即可开始骑行 / Enable JavaScript to start your ride</p></noscript>
+  <div id="app"><!--app-html--></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

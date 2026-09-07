@@ -2,17 +2,33 @@
   "name": "tihuqiche",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.24.0",
   "description": "鹈鹕出逃记：可离线游玩的单文件 3D 骑车闯关游戏",
   "homepage": "https://tihuqiche.com/",
   "license": "MIT",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.12"
   },
   "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "preview": "vite preview --host 127.0.0.1",
     "build": "node scripts/build.mjs",
-    "test": "npm run build && node tests/game.cjs"
+    "test": "pnpm run build && node tests/game.cjs",
+    "assets": "node scripts/generate-social-assets.mjs"
   },
   "devDependencies": {
-    "playwright": "1.62.1"
+    "@vitejs/plugin-vue": "6.0.8",
+    "playwright": "1.62.1",
+    "vite": "8.2.2",
+    "vite-plugin-singlefile": "2.3.3"
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "7.3.1",
+    "@fortawesome/free-brands-svg-icons": "7.3.1",
+    "@fortawesome/free-solid-svg-icons": "7.3.1",
+    "@fortawesome/vue-fontawesome": "3.3.3",
+    "three": "0.160.1",
+    "vue": "3.5.42"
   }
 }

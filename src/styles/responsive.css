@@ -1,0 +1,151 @@
+@media (max-height: 790px) and (min-width: 701px) {
+  #home { top: 100px; bottom: 24px; justify-content: flex-start; }
+  h1 { font-size: 58px; margin-bottom: 12px; }
+  .intro { margin-bottom: 15px; font-size: 12px; }
+  .route-art { height: 44px; }
+  .routes { margin-bottom: 14px; }
+  .primary { padding: 12px 18px; min-height: 51px; }
+}
+@media (max-width: 900px) {
+  .topbar { left: max(22px, env(safe-area-inset-left)); right: max(22px, env(safe-area-inset-right)); gap: 12px; }
+  .brand-name { font-size: 18px; }
+  .brand-mark { width: 48px; height: 48px; }
+  #home { left: max(28px, env(safe-area-inset-left)); width: 360px; }
+  .github-link span { display: none; }
+  .github-link { width: 44px; padding: 10px; }
+}
+@media (max-width: 700px) {
+  .theme-control { width: 44px; max-width: 44px; flex: none; }
+  .theme-control > svg { left: 50%; transform: translateX(-50%); }
+  .theme-control select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; padding: 0; }
+  .topbar { top: max(14px, env(safe-area-inset-top)); left: max(16px, env(safe-area-inset-left)); right: max(16px, env(safe-area-inset-right)); gap: 8px; }
+  .brand { gap: 7px; }
+  .brand-name { font-size: 17px; letter-spacing: .02em; }
+  .brand-sub { font-size: 10px; }
+  .brand-mark { width: 44px; height: 44px; }
+  .top-actions { gap: 6px; }
+  #shade { background: linear-gradient(0deg, var(--shade-solid) 0%, color-mix(in srgb, var(--shade-solid) 96%, transparent) 29%, transparent 86%); }
+  #home { left: max(16px, env(safe-area-inset-left)); right: max(16px, env(safe-area-inset-right)); width: auto; top: auto; bottom: max(16px, env(safe-area-inset-bottom)); max-height: calc(100dvh - 92px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); justify-content: flex-start; }
+  h1 { font-size: 45px; margin: 0 0 12px; line-height: 1.15; }
+  html[lang='en'] h1 { font-size: clamp(28px, 8vw, 36px); }
+  h1 br { display: none; }
+  .intro { font-size: 12px; margin-bottom: 16px; line-height: 1.65; }
+  .route-caption { margin-bottom: 8px; font-size: 10px; }
+  .routes { gap: 8px; margin-bottom: 13px; }
+  .route-art { height: 43px; }
+  .route-art > svg { width: 25px; height: 25px; }
+  .route-name { font-size: 11px; }
+  .route-copy { padding: 7px 8px; }
+  .route.active .route-copy { padding: 7px 7px 6px; }
+  .route-state { font-size: 9px; margin-top: 3px; }
+  .primary { padding: 13px 17px; min-height: 51px; font-size: 15px; }
+  .home-bottom { margin-top: 5px; font-size: 9px; }
+  .text-btn { font-size: 10px; }
+  .scene-caption { display: none; }
+  #hud { top: calc(max(14px, env(safe-area-inset-top)) + 62px); left: max(16px, env(safe-area-inset-left)); right: max(16px, env(safe-area-inset-right)); gap: 10px; }
+  .stage-panel { width: auto; flex: 1; min-width: 0; max-width: 270px; padding: 11px 13px; }
+  .stage-top { font-size: 10px; gap: 8px; }
+  .counters { min-width: 83px; padding: 9px 11px; }
+  .fish-counter { font-size: 23px; }
+  .hearts { font-size: 15px; letter-spacing: 1px; }
+  .speed { font-size: 8px; }
+  .shield-indicator { top: calc(max(14px, env(safe-area-inset-top)) + 162px); right: max(16px, env(safe-area-inset-right)); font-size: 10px; }
+  #controls { display: none; }
+  .touch-controls { display: flex; left: max(16px, env(safe-area-inset-left)); right: max(16px, env(safe-area-inset-right)); }
+  #toast { font-size: 12px; top: 35%; width: max-content; max-width: 88vw; }
+  .panel { padding: 25px; border-radius: 20px; }
+  .panel h2 { font-size: 29px; }
+  .panel p { font-size: 12px; }
+  .help-row { padding: 8px 0; }
+}
+@media (max-width: 540px) {
+  .topbar { flex-wrap: wrap; row-gap: 7px; }
+  .brand { width: 100%; }
+  .top-actions { width: 100%; justify-content: flex-end; gap: 7px; }
+  .theme-control { flex: none; justify-content: center; max-width: 44px; }
+  .theme-control select { width: 100%; }
+  #home { max-height: calc(100dvh - 130px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
+  #hud { top: calc(max(14px, env(safe-area-inset-top)) + 108px); }
+  .shield-indicator { top: calc(max(14px, env(safe-area-inset-top)) + 208px); }
+}
+@media (max-width: 370px) {
+  .topbar { left: 12px; right: 12px; }
+  .top-actions { gap: 5px; }
+  .theme-control select { font-size: 11px; }
+  #home { left: 12px; right: 12px; }
+  h1 { font-size: 36px; }
+  .intro { font-size: 11px; }
+  .route-art { height: 37px; padding-right: 9px; }
+  .route-name { font-size: 10px; }
+  .route-copy { padding-left: 6px; padding-right: 6px; }
+  .route.active .route-copy { padding-left: 5px; padding-right: 5px; }
+  .home-bottom { gap: 6px; }
+  .text-btn { max-width: 46%; text-align: right; }
+  .touch-controls button { width: 51px; height: 54px; }
+  .touch-pair { gap: 7px; }
+  .panel { padding: 20px; }
+  .panel h2 { font-size: 26px; }
+  .help-row { grid-template-columns: 72px 1fr; gap: 8px; font-size: 11px; }
+  .help-row strong { font-size: 12px; }
+}
+@media (pointer: coarse) {
+  .touch-controls { display: flex; }
+  #controls { display: none; }
+}
+@media (max-height: 500px) and (min-width: 541px) {
+  .topbar { top: max(8px, env(safe-area-inset-top)); left: max(18px, env(safe-area-inset-left)); right: max(18px, env(safe-area-inset-right)); flex-wrap: nowrap; }
+  .brand { width: auto; }
+  .brand-mark { width: 40px; height: 40px; }
+  .brand-name { font-size: 16px; }
+  .brand-sub { font-size: 9px; }
+  .top-actions { width: auto; gap: 5px; }
+  .theme-control { flex: none; }
+  .small-btn { min-height: 44px; }
+  .icon-btn, .language-btn, .github-link { width: 44px; }
+  .theme-control select { font-size: 11px; }
+  #home { left: max(20px, env(safe-area-inset-left)); right: auto; top: calc(max(8px, env(safe-area-inset-top)) + 53px); bottom: max(10px, env(safe-area-inset-bottom)); width: min(47vw, 365px); max-height: none; justify-content: flex-start; }
+  #shade { background: linear-gradient(90deg, var(--shade-solid), color-mix(in srgb, var(--shade-solid) 90%, transparent) 35%, transparent 78%); }
+  h1 { font-size: 35px; margin-bottom: 8px; }
+  h1 br, .intro br { display: none; }
+  .intro { font-size: 10px; line-height: 1.6; margin-bottom: 10px; }
+  .route-caption { font-size: 9px; margin-bottom: 6px; }
+  .routes { gap: 6px; margin-bottom: 9px; }
+  .route-art { height: 31px; }
+  .route-art > svg { width: 23px; height: 23px; }
+  .route-number { font-size: 11px; top: 6px; left: 7px; }
+  .route-copy { padding: 5px 6px; }
+  .route.active .route-copy { padding: 5px 5px 4px; }
+  .route-name { font-size: 10px; }
+  .route-state { font-size: 8px; min-height: 12px; }
+  .primary { min-height: 45px; padding: 10px 14px; font-size: 13px; }
+  .home-bottom { margin-top: 3px; }
+  .scene-caption { display: none; }
+  #hud { top: calc(max(8px, env(safe-area-inset-top)) + 53px); left: max(18px, env(safe-area-inset-left)); right: max(18px, env(safe-area-inset-right)); }
+  .stage-panel { width: 225px; flex: none; padding: 9px 12px; }
+  .counters { min-width: 84px; padding: 7px 10px; }
+  .fish-counter { font-size: 21px; }
+  .hearts { font-size: 14px; letter-spacing: 1px; }
+  .shield-indicator { top: calc(max(8px, env(safe-area-inset-top)) + 143px); }
+  .touch-controls { display: flex; bottom: max(12px, env(safe-area-inset-bottom)); }
+  .touch-controls button { width: 48px; height: 48px; }
+  #controls { display: none; }
+  .panel { padding: 20px; max-width: 520px; width: 100%; }
+  .panel h2 { font-size: 25px; margin: 10px 0; }
+  .help-row { padding: 6px 0; }
+  .panel .help-note { margin: 10px 0; }
+  .stats { margin: 12px 0; padding: 10px 0; }
+  .stars { font-size: 28px; margin-top: 8px; }
+  #toast { top: 39%; font-size: 11px; padding: 9px 14px; }
+}
+@media (max-width: 540px) and (max-height: 700px) and (orientation: portrait) {
+  #home { max-height: calc(100dvh - 240px - max(16px, env(safe-area-inset-bottom))); }
+  h1 { font-size: 34px; line-height: 1.1; margin-bottom: 8px; }
+  .intro { font-size: 11px; line-height: 1.55; margin-bottom: 10px; }
+  .route-caption { margin-bottom: 6px; }
+  .routes { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 100px; gap: 8px; overflow-x: auto; overflow-y: hidden; flex-shrink: 0; scroll-snap-type: x proximity; scrollbar-width: thin; padding-bottom: 4px; margin-bottom: 10px; }
+  .route { scroll-snap-align: start; }
+  .route-art { height: 37px; }
+  .route-copy { padding-top: 6px; padding-bottom: 6px; }
+  .route.active .route-copy { padding-top: 6px; padding-bottom: 5px; }
+  .home-bottom { margin-top: 3px; }
+}
