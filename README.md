@@ -78,7 +78,9 @@ pnpm preview
 
 场景、角色和游戏工厂保留原有模型与物理步骤，因此整体初始化函数超过 50 行，内部操作仍独立分组；这些工厂统一管理动画、事件和 GPU 资源的销毁，避免为一次性模型构造增加额外接口
 
-## 测试
+## 本地测试（可选）
+
+浏览器测试按需在本地执行，GitHub Actions 仅负责构建与部署，不安装 Chromium 或运行浏览器测试
 
 ```bash
 pnpm install --frozen-lockfile
@@ -106,8 +108,8 @@ PLAYWRIGHT_CHANNEL=chrome pnpm test
 
 工作流位于 [`.github/workflows/pages.yml`](.github/workflows/pages.yml)，使用 GitHub 官方 Pages Actions
 
-- 推送到 `main`：安装测试依赖 → 从源码构建 → 运行游戏测试 → 上传 `dist/` → 部署到 Pages
-- 向 `main` 提交 Pull Request：仅构建和测试，通过后才适合合并
+- 推送到 `main`：安装依赖 → 执行 `pnpm build` → 上传 `dist/` → 部署到 Pages
+- 向 `main` 提交 Pull Request：仅构建，不部署
 - 需要重新部署时，可在 Actions 中选择 **Build and deploy Pages → Run workflow**，使用 `main` 分支运行
 
 首次配置或 Fork 仓库后，进入 **Settings → Pages → Build and deployment → Source**，选择 **GitHub Actions**；不需要创建 `gh-pages` 分支，也不需要配置个人访问令牌
@@ -118,7 +120,7 @@ PLAYWRIGHT_CHANNEL=chrome pnpm test
 
 中文规范地址为 `https://tihuqiche.com/`，英文为 `https://tihuqiche.com/en/`；分享图片使用可直接抓取的 `https://tihuqiche.com/share-image.png`，这些元信息不会使离线包发起资源请求
 
-每次部署都会从 `src/` 重新构建，只发布 `dist/` 内的静态产物；构建或测试失败时停止部署，线上版本保持不变
+每次部署都会从 `src/` 重新构建，只发布 `dist/` 内的静态产物；构建失败时停止部署，线上版本保持不变
 
 配置方式参考 [GitHub Pages 自定义工作流文档](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)与[自定义域名文档](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site)
 
@@ -145,7 +147,7 @@ PLAYWRIGHT_CHANNEL=chrome pnpm test
 ├── docs/preview.png        # 游戏预览
 ├── dist/                  # 中文首页、en/、在线资源与 offline.html
 ├── .github/workflows/
-│   └── pages.yml           # 构建、测试和部署
+│   └── pages.yml           # 构建和部署
 ├── package.json
 ├── pnpm-lock.yaml
 └── LICENSE

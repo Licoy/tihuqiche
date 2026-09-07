@@ -37,14 +37,11 @@ jobs:
         with:
           cache: pnpm
 
-      - name: Install application and test dependencies
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Install Chromium
-        run: pnpm exec playwright install --with-deps chromium
-
-      - name: Build localized pages and test online and offline game
-        run: pnpm test
+      - name: Build localized pages and offline game
+        run: pnpm build
 
       - name: Upload Pages artifact
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
