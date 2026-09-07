@@ -1,4 +1,6 @@
 <script setup>
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
+import { faArrowRight } from '@fortawesome/free-solid-svg-icons';
 import { computed, inject } from 'vue';
 import { LEVELS } from '../levels.js';
 import HomeRiderCard from './HomeRiderCard.vue';
@@ -19,7 +21,7 @@ function start() {
     <p v-if="selectedMode === 'duo'" class="duo-instructions">{{ isMobile ? copy.mobileDuo : copy.duoKeys }}</p>
     <template v-if="selectedMode !== 'endless'"><div class="route-caption">{{ copy.routes }}</div><div id="routes" class="routes"><RouteCard v-for="(_, index) in LEVELS" :key="LEVELS[index].id" :index="index" /></div></template>
     <p v-else class="endless-route">{{ copy.endlessRoute }}</p>
-    <button id="start" class="primary" @click="start"><span>{{ copy.start }}</span><span aria-hidden="true">↗</span></button>
+    <button id="start" class="primary" @click="start"><span>{{ copy.start }}</span><span aria-hidden="true"><FontAwesomeIcon :icon="faArrowRight" /></span></button>
     <div class="home-bottom"><span id="best">{{ best ? t(selectedMode === 'endless' ? 'endlessBest' : 'best', { score: best }) : copy.journey }}</span><button id="help-open" class="text-btn" @click="helpOpen = true">{{ copy.helpOpen }}</button></div>
   </main>
   <HomeRiderCard />

@@ -7,9 +7,8 @@
 .distance { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); }
 .counters { text-align: right; background: var(--surface); border-radius: 14px; padding: 12px 17px; min-width: 120px; }
 .fish-counter { display: flex; justify-content: flex-end; align-items: center; gap: 9px; font-weight: 850; font-size: 28px; }
-.fish-icon { display: inline-block; width: 24px; height: 15px; border-radius: 50%; background: #f1b949; position: relative; margin-right: 5px; }
-.fish-icon::after { content: ""; position: absolute; right: -6px; top: 2px; border: 6px solid transparent; border-right: 7px solid #f1b949; border-left: 0; }
-.hearts { font-size: 19px; color: var(--orange); letter-spacing: 4px; margin-top: 3px; }
+.fish-icon { width: 29px; height: 19px; color: #f1b949; margin-right: 5px; }
+.hearts { display: flex; justify-content: flex-end; gap: 4px; font-size: 19px; color: var(--orange); margin-top: 3px; }
 .empty-heart, .empty-star { opacity: .4; }
 .speed { font-size: 9px; color: var(--muted); letter-spacing: .08em; margin-top: 5px; }
 .shield-indicator { position: fixed; z-index: 3; top: 215px; right: max(32px, env(safe-area-inset-right)); padding: 7px 11px; background: var(--paper); border: 1px solid #3d9283; border-radius: 8px; font-size: 11px; font-weight: 700; max-width: calc(100vw - 32px); }
@@ -21,8 +20,8 @@
 kbd { font: inherit; display: inline-block; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 5px; min-width: 23px; padding: 4px 5px; text-align: center; margin-right: 1px; }
 .touch-controls { display: none; position: fixed; z-index: 4; left: max(18px, env(safe-area-inset-left)); right: max(18px, env(safe-area-inset-right)); bottom: max(20px, env(safe-area-inset-bottom)); justify-content: space-between; pointer-events: none; }
 .touch-pair { display: flex; gap: 10px; }
-.touch-controls button { width: 56px; height: 56px; border: 1px solid var(--border); background: var(--surface); border-radius: 15px; font-size: 24px; pointer-events: auto; touch-action: none; user-select: none; box-shadow: 0 4px 0 var(--shadow); }
-.touch-controls small { font-size: 9px; display: block; margin-top: 2px; }
+.touch-controls button { width: 56px; height: 56px; padding: 0; border: 1px solid var(--border); background: var(--surface); border-radius: 15px; font-size: 24px; pointer-events: auto; touch-action: none; user-select: none; box-shadow: 0 4px 0 var(--shadow); }
+.touch-controls small { font-size: 9px; line-height: 1.1; display: block; margin-top: 2px; }
 .touch-controls .action-touch { font-size: 19px; line-height: 18px; }
 .overlay { position: fixed; z-index: 6; inset: 0; display: flex; align-items: center; justify-content: center; padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left)); background: #173e3d70; backdrop-filter: blur(6px); }
 .panel { width: 440px; max-width: 100%; max-height: 100%; overflow-y: auto; overscroll-behavior: contain; background: var(--paper); border-radius: 24px; padding: 32px; box-shadow: 0 20px 70px #173e3d30; }
@@ -35,7 +34,7 @@ kbd { font: inherit; display: inline-block; border: 1px solid var(--border); bor
 .stats > div { flex: 1; min-width: 0; text-align: center; }
 .stats b { display: block; font-size: 25px; }
 .stats span { display: block; font-size: 10px; color: var(--muted); margin-top: 5px; }
-.stars { font-size: 37px; letter-spacing: 12px; color: #e8af36; margin-top: 15px; }
+.stars { display: flex; gap: 12px; font-size: 37px; color: #e8af36; margin-top: 15px; }
 .help-row { display: grid; grid-template-columns: 88px 1fr; gap: 12px; align-items: center; font-size: 12px; line-height: 1.6; padding: 11px 0; border-bottom: 1px solid var(--border); }
 .help-row strong { font-size: 13px; }
 .panel .help-note { font-size: 11px; margin: 16px 0; }

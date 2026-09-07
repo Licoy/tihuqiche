@@ -44,7 +44,7 @@
   .stage-top { font-size: 10px; gap: 8px; }
   .counters { min-width: 83px; padding: 9px 11px; }
   .fish-counter { font-size: 23px; }
-  .hearts { font-size: 15px; letter-spacing: 1px; }
+  .hearts { font-size: 15px; gap: 1px; }
   .speed { font-size: 8px; }
   .shield-indicator { top: calc(max(14px, env(safe-area-inset-top)) + 146px); right: max(16px, env(safe-area-inset-right)); font-size: 10px; }
   #controls { display: none; }
@@ -103,7 +103,7 @@
   .stage-panel { width: 225px; flex: none; padding: 9px 12px; }
   .counters { min-width: 84px; padding: 7px 10px; }
   .fish-counter { font-size: 21px; }
-  .hearts { font-size: 14px; letter-spacing: 1px; }
+  .hearts { font-size: 14px; gap: 1px; }
   .shield-indicator { top: calc(max(8px, env(safe-area-inset-top)) + 143px); }
   .touch-controls { display: flex; bottom: max(12px, env(safe-area-inset-bottom)); }
   .touch-controls button { width: 48px; height: 48px; }
@@ -148,6 +148,20 @@ button[aria-pressed='true']:is(.mode-picker button, .wardrobe-tabs button, .ward
 .wardrobe-colours i { width: 17px; height: 17px; border: 1px solid #173e3d44; border-radius: 50%; }
 .player-counters { display: flex; gap: 10px; }
 .player-counters .counters { max-width: 230px; }
+/* Flatten only the duo wrapper so each player occupies its own screen side. */
+#hud.duo-hud { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 270px) minmax(0, 1fr); }
+.duo-hud .player-counters { display: contents; }
+.duo-hud .stage-panel { grid-column: 2; grid-row: 1; justify-self: center; width: 100%; min-width: 0; }
+.duo-hud .counters { grid-row: 1; min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+.duo-hud .counters[data-player='0'] { grid-column: 1; justify-self: start; text-align: left; }
+.duo-hud .counters[data-player='1'] { grid-column: 3; justify-self: end; }
+.duo-hud [data-player='0'] .fish-counter, .duo-hud [data-player='0'] .hearts { justify-content: flex-start; }
+@media (max-width: 700px) {
+  #hud.duo-hud { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .duo-hud .stage-panel { grid-column: 1 / -1; grid-row: 1; justify-self: center; }
+  .duo-hud .counters[data-player='0'] { grid-row: 2; }
+  .duo-hud .counters[data-player='1'] { grid-column: 2; grid-row: 2; }
+}
 .counters > b { font-size: 11px; }
 .player-effect { font-size: 10px; margin-top: 5px; color: var(--muted); }
 .boost-control, .item-control { pointer-events: auto; display: flex; width: 100%; flex-direction: column; align-items: stretch; gap: 4px; min-height: 44px; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: var(--ink); padding: 7px; margin-top: 7px; font: inherit; font-size: 11px; text-align: left; }
@@ -166,7 +180,7 @@ button[aria-pressed='true']:is(.mode-picker button, .wardrobe-tabs button, .ward
 .result-brand b { font-size: 16px; }
 .record-label { margin-left: auto; font-size: 10px; color: var(--orange); font-weight: 750; }
 .result-card h2 { font-size: 26px; margin: 10px 0; }
-.result-card .stars { font-size: 23px; margin: 6px 0; letter-spacing: 7px; }
+.result-card .stars { font-size: 23px; margin: 6px 0; gap: 7px; }
 .result-main-score { display: flex; align-items: baseline; gap: 12px; font-variant-numeric: tabular-nums; }
 .result-main-score b { font-size: 48px; line-height: 1.1; overflow-wrap: anywhere; }
 .result-main-score span { font-size: 11px; color: var(--muted); }
@@ -205,9 +219,6 @@ button[aria-pressed='true']:is(.mode-picker button, .wardrobe-tabs button, .ward
   .wardrobe-panel h2 { font-size: 24px; }
   .player-counters { gap: 5px; }
   .player-counters .counters { max-width: 155px; }
-  .duo-hud { flex-wrap: wrap; }
-  .duo-hud .stage-panel { max-width: none; width: 100%; flex-basis: 100%; }
-  .duo-hud .player-counters { width: 100%; justify-content: space-between; }
   .boost-control { font-size: 10px; }
   .touch-controls { left: 10px; right: 10px; gap: 8px; }
   .touch-pair { gap: 5px; }
@@ -248,7 +259,6 @@ button[aria-pressed='true']:is(.mode-picker button, .wardrobe-tabs button, .ward
   .touch-controls { bottom: 10px; }
   .touch-controls button { width: 44px; height: 44px; }
   .duo-hud .stage-panel { max-width: 180px; }
-  .duo-hud .player-counters { gap: 5px; }
   .duo-hud .counters { max-width: 155px; }
   .result-panel { max-width: 490px; }
 }

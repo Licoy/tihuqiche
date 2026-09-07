@@ -1,4 +1,5 @@
 import * as T from 'three';
+import { faArrowUp, faArrowDown, faArrowsLeftRight, faQuestion } from '@fortawesome/free-solid-svg-icons';
 import { V } from './world.js';
 import { LEVELS } from './levels.js';
 import { campaignLayout, createEndlessLayout } from './course-layout.js';
@@ -8,15 +9,17 @@ const {scene,mesh,orb,box,finish}=world;
 let entities=[],nextId=0,stream=null;
 const obstacleRoot=new T.Group();scene.add(obstacleRoot);
 const markerTextures=new Map();
-function marker(symbol,color){
- const key=symbol+color;
+function marker(glyph,color){
+ const key=glyph.iconName+color;
  if(!markerTextures.has(key)){
   const c=document.createElement('canvas');c.width=128;c.height=128;const ctx=c.getContext('2d');
   ctx.fillStyle=color;ctx.beginPath();ctx.arc(64,64,51,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#fff8e5';ctx.lineWidth=5;ctx.stroke();
-  ctx.fillStyle='#fff8e5';ctx.font='bold 65px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(symbol,64,64);
+  const [width,height,,,path]=glyph.icon,scale=64/Math.max(width,height);
+  ctx.save();ctx.translate((128-width*scale)/2,(128-height*scale)/2);ctx.scale(scale,scale);
+  ctx.fillStyle='#fff8e5';ctx.fill(new Path2D(path));ctx.restore();
   markerTextures.set(key,new T.SpriteMaterial({map:new T.CanvasTexture(c),depthTest:true}));
  }
- const s=new T.Sprite(markerTextures.get(key));s.scale.set(.85,.85,1);s.userData.courseMarker=true;return s;
+ const s=new T.Sprite(markerTextures.get(key));s.name=`course-marker:${glyph.iconName}`;s.scale.set(.85,.85,1);s.userData.courseMarker=true;return s;
 }
 function makeEntity(type,lane,at,height=1.35){
  const g=new T.Group();g.position.set((lane-1)*3.4,0,-at);obstacleRoot.add(g);
@@ -29,23 +32,23 @@ function makeEntity(type,lane,at,height=1.35){
   mesh('torus','#73f0cf',{s:[.46,.46,.46],parent:g});mesh('ico','#b5ffe6',{s:[.23,.29,.14],parent:g});g.position.y=1.7;
  }else if(type==='item'){
   box('#4B83A6',[0,1.35,0],[.8,.8,.8],g);
-  const m=marker('?', '#338878');m.position.y=2.1;g.add(m);
+  const m=marker(faQuestion, '#338878');m.position.y=2.1;g.add(m);
  }else if(type==='hurdle'){
   for(const x of [-.98,.98])box('#a57c53',[x,.62,0],[.17,1.2,.25],g);
   box('#eb8960',[0,.83,0],[2.35,.46,.27],g);
   for(const x of [-.8,0,.8])box('#ffefc4',[x,.83,.145],[.27,.45,.035],g);
-  const m=marker('↑','#d77848');m.position.y=1.7;g.add(m);
+  const m=marker(faArrowUp,'#d77848');m.position.y=1.7;g.add(m);
  }else if(type==='gate'){
   for(const x of [-1.18,1.18])box('#427c7b',[x,1.6,0],[.16,3.2,.23],g);
   box('#348f90',[0,3.03,0],[2.62,.5,.36],g);
   for(const x of [-.94,.94])box('#d1f0d8',[x,3.03,.195],[.15,.48,.03],g);
-  const m=marker('↓','#337978');m.position.y=3.78;g.add(m);
+  const m=marker(faArrowDown,'#337978');m.position.y=3.78;g.add(m);
  }else{
   box('#bf8c5c',[0,1.4,0],[2.2,2.8,1.65],g);
   for(const y of [.17,1.4,2.64])box('#dfb57e',[0,y,.85],[2.23,.16,.1],g);
   for(const x of [-.97,.97])box('#e9c28b',[x,1.4,.88],[.15,2.75,.13],g);
   const diagonal=box('#d9ab70',[0,1.4,.9],[.15,3.1,.12],g);diagonal.rotation.z=.61;
-  const m=marker('↔','#8a6b4a');m.position.y=3.48;g.add(m);
+  const m=marker(faArrowsLeftRight,'#8a6b4a');m.position.y=3.48;g.add(m);
  }
  const e={id:nextId++,type,lane,at,height,mesh:g,resolved:false,resolvedBy:[]};entities.push(e);return e;
 }
