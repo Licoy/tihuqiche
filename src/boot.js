@@ -18,10 +18,9 @@ export async function finishBoot(engine, copy) {
       image.src = src;
       return decodeImage(image);
     } }));
+    // Project images are listed above and fonts are system fonts; ignore unrelated page images and fonts.
     const pageLoaded = waitForPageResources(window);
     tasks.push(
-      { name: 'Visible images', run: () => Promise.all([...document.images].map(decodeImage)) },
-      { name: 'Fonts', run: async () => { await pageLoaded; await document.fonts.ready; } },
       { name: 'Page resources', run: () => pageLoaded },
       { name: '3D first frame', run: () => engine.whenReady() },
     );
