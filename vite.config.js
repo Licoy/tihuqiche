@@ -11,8 +11,11 @@ export default defineConfig(({ mode }) => ({
       name: 'nonblocking-startup-css',
       apply: 'build',
       transformIndexHtml: { order: 'post', handler: html => html.replace(
+        /<script\b(?=[^>]*type="module")(?=[^>]*\bsrc=)[^>]*>/g,
+        tag => tag.includes('data-boot-required') ? tag : tag.replace('<script', '<script data-boot-required'),
+      ).replace(
         /<link\b[^>]*rel="stylesheet"[^>]*>/g,
-        tag => `${tag.replace('<link', '<link media="print" onload="this.media=\'all\'"')}<noscript>${tag}</noscript>`,
+        tag => `${tag.replace('<link', '<link data-boot-required media="print" onload="this.media=\'all\'"')}<noscript>${tag}</noscript>`,
       ) },
     }] : []),
     ...(mode === 'offline' ? [viteSingleFile()] : []),

@@ -78,10 +78,20 @@
         complete() { if (!failure && progress?.completed === progress?.total && progress) { done = true; render(); } },
         fail(error, value) { if (value) copy = { ...copy, ...value }; failure ||= error || new Error('Unknown startup error'); done = false; render(); },
       };
+      window.addEventListener('load', event => {
+        const target = event.target;
+        if ((target instanceof HTMLScriptElement || target instanceof HTMLLinkElement && target.rel === 'stylesheet') && target.hasAttribute('data-boot-required')) {
+          if (target instanceof HTMLLinkElement) target.media = 'all';
+          target.dataset.bootState = 'loaded';
+        }
+      }, true);
       window.addEventListener('error', event => {
         const target = event.target;
         if (target instanceof HTMLScriptElement || target instanceof HTMLLinkElement && target.rel === 'stylesheet') {
-          window.__pelicanBoot.fail(new Error(`Resource failed: ${target.src || target.href}`));
+          if (target.hasAttribute('data-boot-required')) {
+            target.dataset.bootState = 'error';
+            window.__pelicanBoot.fail(new Error(`Resource failed: ${target.src || target.href}`));
+          } else console.warn('Optional resource failed', target.src || target.href);
         } else if (event.error || event.message) window.__pelicanBoot.fail(event.error || new Error(event.message));
       }, true);
       window.addEventListener('keydown', event => {
@@ -121,8 +131,8 @@
   <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png">
   <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png">
   <link rel="shortcut icon" href="/favicon.ico">
-  <script type="module" crossorigin src="/assets/index-rseNbZV-.js"></script>
-  <link media="print" onload="this.media='all'" rel="stylesheet" crossorigin href="/assets/index-CxRFHxrW.css"><noscript><link rel="stylesheet" crossorigin href="/assets/index-CxRFHxrW.css"></noscript>
+  <script data-boot-required type="module" crossorigin src="/assets/index-BpKWff2Z.js"></script>
+  <link data-boot-required media="print" onload="this.media='all'" rel="stylesheet" crossorigin href="/assets/index-CxRFHxrW.css"><noscript><link rel="stylesheet" crossorigin href="/assets/index-CxRFHxrW.css"></noscript>
 </head>
 <body>
   <noscript><style>#loading { display: none; } html[data-boot] #app { opacity: 1; pointer-events: auto; }</style><p>启用 JavaScript 即可开始骑行 / Enable JavaScript to start your ride</p></noscript>

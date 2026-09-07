@@ -112,6 +112,8 @@ pnpm preview
 
 基础 HTML 内置品牌加载界面，Vue 挂载期间保持显示；程序下载阶段展示加载动画，之后按实际完成的资源任务推进进度，等待图片解码、字体和 3D 首帧就绪再显示游戏；资源加载失败时保留错误与重试入口，离线版使用同一流程
 
+游戏入口脚本与构建样式通过 `data-boot-required` 标记为必需资源，启动只等待必需样式，不等待整个页面的 `load`；Cloudflare 等可选统计脚本下载失败仅保留控制台警告，不阻断启动或已显示的游戏，必需资源失败仍显示错误与重试入口
+
 构建首先生成在线资源，再用 Vue 服务端渲染输出中文 `dist/index.html` 和英文 `dist/en/index.html`，最后独立使用 `vite-plugin-singlefile` 生成完整内嵌的 `dist/offline.html`；在线版需通过 HTTP 服务访问，离线版可直接打开
 
 标题、描述、关卡名称和 JSON-LD 与界面共享 `src/locales.js`、`src/levels.js`；两种语言的静态 HTML 都包含实际页面内容、canonical、hreflang、Open Graph 与 Twitter Card，不依赖执行 JavaScript 才能抓取；`public/` 提供 favicon、1200×630 分享图片、robots.txt 和 sitemap.xml

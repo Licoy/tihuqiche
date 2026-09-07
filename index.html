@@ -78,10 +78,20 @@
         complete() { if (!failure && progress?.completed === progress?.total && progress) { done = true; render(); } },
         fail(error, value) { if (value) copy = { ...copy, ...value }; failure ||= error || new Error('Unknown startup error'); done = false; render(); },
       };
+      window.addEventListener('load', event => {
+        const target = event.target;
+        if ((target instanceof HTMLScriptElement || target instanceof HTMLLinkElement && target.rel === 'stylesheet') && target.hasAttribute('data-boot-required')) {
+          if (target instanceof HTMLLinkElement) target.media = 'all';
+          target.dataset.bootState = 'loaded';
+        }
+      }, true);
       window.addEventListener('error', event => {
         const target = event.target;
         if (target instanceof HTMLScriptElement || target instanceof HTMLLinkElement && target.rel === 'stylesheet') {
-          window.__pelicanBoot.fail(new Error(`Resource failed: ${target.src || target.href}`));
+          if (target.hasAttribute('data-boot-required')) {
+            target.dataset.bootState = 'error';
+            window.__pelicanBoot.fail(new Error(`Resource failed: ${target.src || target.href}`));
+          } else console.warn('Optional resource failed', target.src || target.href);
         } else if (event.error || event.message) window.__pelicanBoot.fail(event.error || new Error(event.message));
       }, true);
       window.addEventListener('keydown', event => {
@@ -109,6 +119,6 @@
   </div>
   <div id="app"><!--app-html--></div>
   <script>window.__pelicanBoot.render();</script>
-  <script type="module" src="/src/main.js"></script>
+  <script type="module" data-boot-required src="/src/main.js"></script>
 </body>
 </html>

@@ -15,8 +15,21 @@ export async function runBootTasks(tasks, onProgress) {
 }
 
 export function waitForPageResources(page) {
-  if (page.document.readyState === 'complete') return Promise.resolve();
-  return new Promise(resolve => page.addEventListener('load', resolve, { once: true }));
+  const styles = [...page.document.querySelectorAll('link[rel="stylesheet"][data-boot-required]')];
+  return Promise.all(styles.map(style => new Promise((resolve, reject) => {
+    const cleanup = () => {
+      style.removeEventListener('load', loaded);
+      style.removeEventListener('error', failed);
+    };
+    const loaded = () => { cleanup(); resolve(); };
+    const failed = () => { cleanup(); reject(new Error(`Resource failed: ${style.href}`)); };
+    if (style.dataset.bootState === 'loaded') loaded();
+    else if (style.dataset.bootState === 'error') failed();
+    else {
+      style.addEventListener('load', loaded);
+      style.addEventListener('error', failed);
+    }
+  })));
 }
 
 export async function decodeImage(image) {
