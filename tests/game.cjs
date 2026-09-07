@@ -8,6 +8,11 @@ const report=[];
 const artifacts=path.resolve(__dirname,'../test-results');
 fs.mkdirSync(artifacts,{recursive:true});
 function check(name,actual,expected=true){assert.deepEqual(actual,expected,name);report.push('PASS '+name)}
+async function renderView(page){
+ // The suite holds requestAnimationFrame, so poll resize completion independently.
+ await page.waitForFunction(()=>camera.aspect===innerWidth/innerHeight,null,{polling:50});
+ await page.evaluate(()=>{testFrame(performance.now());updateCamera(10);document.getAnimations().forEach(animation=>animation.finish());renderer.render(scene,camera)});
+}
 (async()=>{
  const browser=await chromium.launch({headless:true,...(process.env.PLAYWRIGHT_CHANNEL?{channel:process.env.PLAYWRIGHT_CHANNEL}:{})});
  try{
@@ -20,10 +25,21 @@ function check(name,actual,expected=true){assert.deepEqual(actual,expected,name)
   await page.goto(target);
   check('offline file initialization',await page.evaluate(()=>game.mode==='home'&&$('loading').hidden&&renderer.getContext().getParameter(renderer.getContext().VERSION).includes('WebGL')));
   check('only the HTML file is requested',requests,[target]);
+  check('header shows the requested brand and domain',await page.locator('.brand').innerText(),'鹈鹕骑车\ntihuqiche.com');
+  check('logo is embedded, decoded and transparent',await page.evaluate(()=>{const img=document.querySelector('.brand-mark'),c=document.createElement('canvas');c.width=c.height=1;const ctx=c.getContext('2d');ctx.drawImage(img,0,0);return img.complete&&img.naturalWidth>0&&img.src.startsWith('data:image/png;base64,')&&ctx.getImageData(0,0,1,1).data[3]===0}));
+  check('home links to the project on GitHub',await page.locator('#github').getAttribute('href'),'https://github.com/Licoy/tihuqiche');
+  check('GitHub keyboard activation does not start the game',await page.evaluate(()=>{const event=new KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true});$('github').dispatchEvent(event);return !event.defaultPrevented&&game.mode==='home'}));
+  check('sound defaults on before interaction',await page.evaluate(()=>soundEnabled&&audio===null&&$('sound').getAttribute('aria-pressed')==='true'&&$('sound').textContent==='音效：开'));
+  await renderView(page);await page.screenshot({path:path.join(artifacts,'home-desktop.png')});
   check('later stages initially locked',await page.locator('.route:disabled').count(),2);
   await page.getByRole('button',{name:'第一次骑？看这里'}).click();check('help opens',await page.locator('#help').isVisible());
   await page.keyboard.press('Escape');check('help closes with Escape',await page.locator('#help').isHidden());
   await page.getByRole('button',{name:'出发，去兜风'}).click();
+  await page.waitForFunction(()=>audio?.state==='running');check('start click activates real audio',await page.evaluate(()=>audio.state),'running');
+  check('GitHub entry is hidden during a run',await page.locator('#github').isHidden());
+  await page.locator('#sound').click();check('sound can be muted',await page.evaluate(()=>!soundEnabled&&$('sound').getAttribute('aria-pressed')==='false'));
+  await page.locator('#pause').click();await page.locator('#restart').click();check('restart respects muted sound',await page.evaluate(()=>!soundEnabled));
+  await page.locator('#sound').click();check('sound can be enabled again',await page.evaluate(()=>soundEnabled&&$('sound').getAttribute('aria-pressed')==='true'));
   await page.keyboard.press('ArrowLeft');check('keyboard moves left',await page.evaluate(()=>game.lane),0);
   await page.keyboard.press('ArrowLeft');check('left lane is bounded',await page.evaluate(()=>game.lane),0);
   await page.keyboard.press('ArrowRight');await page.keyboard.press('ArrowRight');await page.keyboard.press('ArrowRight');
@@ -67,6 +83,7 @@ function check(name,actual,expected=true){assert.deepEqual(actual,expected,name)
   await mobile.addInitScript(()=>{window.requestAnimationFrame=callback=>{window.testFrame=callback;return 1}});
   const phone=await mobile.newPage();phone.on('pageerror',e=>errors.push(e.message));await phone.goto(target);
   await phone.getByRole('button',{name:'出发，去兜风'}).tap();
+  await phone.waitForFunction(()=>audio?.state==='running');check('touch start activates real audio',await phone.evaluate(()=>audio.state),'running');
   await phone.getByRole('button',{name:'向左变道'}).tap();check('touch button changes lane',await phone.evaluate(()=>game.lane),0);
   await phone.getByRole('button',{name:'跳跃',exact:true}).tap();check('touch jump',await phone.evaluate(()=>game.vy>0));
   await phone.evaluate(()=>{for(let i=0;i<130;i++)step(1/120)});
@@ -80,6 +97,22 @@ function check(name,actual,expected=true){assert.deepEqual(actual,expected,name)
   console.log('Mobile projection',mobileBounds);
   check('mobile right-lane rider stays in view',Math.abs(mobileBounds.x)<.85&&Math.abs(mobileBounds.y)<.85);
   check('mobile has no horizontal overflow',await phone.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  for(const viewport of [{width:320,height:568},{width:390,height:844},{width:568,height:320},{width:844,height:390}]){
+   const size=viewport.width+'x'+viewport.height;await phone.setViewportSize(viewport);
+   await phone.evaluate(()=>{goHome();$('home').scrollTop=0});await renderView(phone);
+   check(size+' header fits without overlap',await phone.evaluate(()=>{const brand=document.querySelector('.brand').getBoundingClientRect(),actions=document.querySelector('.top-actions').getBoundingClientRect(),sub=document.querySelector('.brand-sub').getBoundingClientRect();return brand.left>=0&&brand.right+4<=actions.left&&actions.right<=innerWidth&&actions.bottom<=innerHeight&&sub.width>0&&sub.height>0}));
+   check(size+' home rider is visible beside or above the menu',await phone.evaluate(()=>{const p=V(rider.position.x,2,0).project(camera),menu=$('home').getBoundingClientRect();return Math.abs(p.x)<.9&&Math.abs(p.y)<.9&&(innerWidth>innerHeight?(p.x+1)*innerWidth/2>menu.right:(1-p.y)*innerHeight/2<menu.top)}));
+   await phone.screenshot({path:path.join(artifacts,'home-'+size+'.png')});
+   await phone.locator('#help-open').tap();
+   check(size+' help panel fits the viewport',await phone.evaluate(()=>{const p=$('help').querySelector('.panel').getBoundingClientRect();return p.top>=0&&p.bottom<=innerHeight&&p.left>=0&&p.right<=innerWidth}));
+   await phone.locator('#help-close').tap();check(size+' help can be closed',await phone.locator('#help').isHidden());
+   await phone.locator('#start').tap();
+   check(size+' HUD and touch buttons fit without overlap',await phone.evaluate(()=>{const stage=document.querySelector('.stage-panel').getBoundingClientRect(),counters=document.querySelector('.counters').getBoundingClientRect(),header=document.querySelector('.topbar').getBoundingClientRect(),touch=$('touch').getBoundingClientRect();return stage.right<counters.left&&stage.top>=header.bottom&&touch.top>Math.max(stage.bottom,counters.bottom)&&[...document.querySelectorAll('[data-action]')].every(b=>{const r=b.getBoundingClientRect();return r.width>=44&&r.height>=44&&r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight})}));
+   await phone.evaluate(()=>$('toast').classList.remove('show'));await renderView(phone);
+   await phone.screenshot({path:path.join(artifacts,'playing-'+size+'.png')});
+   await phone.locator('#pause').tap();check(size+' touch pause works',await phone.evaluate(()=>game.mode),'paused');
+   await phone.locator('#quit').tap();check(size+' can return to home and GitHub',await phone.locator('#github').isVisible());
+  }
   check('mobile introduces no JavaScript errors',errors,[]);
   fs.writeFileSync(path.join(artifacts,'verification.json'),JSON.stringify({checks:report,stages,mobileBounds,requests,errors},null,2));
   console.log(report.join('\n'));console.log('STAGES',JSON.stringify(stages));console.log(report.length+' checks passed');

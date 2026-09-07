@@ -20,7 +20,7 @@ document.addEventListener('keydown',event=>{
   if(event.key===' '&&event.target.tagName==='BUTTON')return;
   event.preventDefault();action(keyActions[event.key]);
  }
- if(game.mode==='home'&&(event.key==='Enter'||event.key===' ')&&event.target.tagName!=='BUTTON'){event.preventDefault();startLevel(selected)}
+ if(game.mode==='home'&&(event.key==='Enter'||event.key===' ')&&!event.target.closest('button,a')){event.preventDefault();startLevel(selected)}
 });
 document.querySelectorAll('[data-action]').forEach(b=>b.addEventListener('pointerdown',e=>{e.preventDefault();action(b.dataset.action)}));
 let touchStart=null;

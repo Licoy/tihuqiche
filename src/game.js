@@ -1,5 +1,5 @@
 const game={mode:'home',level:0,distance:0,speed:0,lane:1,x:0,jumpY:0,vy:0,duck:0,hp:3,fish:0,shield:false,invincible:0,elapsed:0};
-let save={unlocked:1,best:[0,0,0],stars:[0,0,0]},soundEnabled=false,audio=null,toastTimer=null,selected=0,previous=performance.now(),clockTime=0,menuDistance=0;
+let save={unlocked:1,best:[0,0,0],stars:[0,0,0]},soundEnabled=true,audio=null,toastTimer=null,selected=0,previous=performance.now(),clockTime=0,menuDistance=0;
 function toast(message,duration=2400){clearTimeout(toastTimer);$('toast').textContent=message;$('toast').classList.add('show');toastTimer=setTimeout(()=>$('toast').classList.remove('show'),duration)}
 function readSave(){
  try{
@@ -35,7 +35,7 @@ function renderRoutes(){
 function setMode(mode){
  game.mode=mode;const running=mode==='playing',inRun=['playing','paused'].includes(mode);
  document.body.classList.toggle('playing',mode!=='home');
- for(const id of ['home','edition','scene-caption'])$(id).hidden=mode!=='home';
+ for(const id of ['home','edition','scene-caption','github'])$(id).hidden=mode!=='home';
  for(const id of ['hud','controls','touch'])$(id).hidden=!inRun;
  $('pause').hidden=!running;$('pause-screen').hidden=mode!=='paused';$('result').hidden=!['won','lost'].includes(mode);
  $('shield').hidden=!inRun||!game.shield;
@@ -44,6 +44,7 @@ function setMode(mode){
 }
 function startLevel(index){
  if(index<0||index>=save.unlocked)return;
+ tone('move');
  Object.assign(game,{level:index,distance:0,speed:LEVELS[index].speed,lane:1,x:0,jumpY:0,vy:0,duck:0,hp:3,fish:0,shield:false,invincible:0,elapsed:0});
  selected=index;setTheme(index);generateCourse(index);clearParticles();rider.visible=true;rider.position.set(0,0,0);rider.rotation.set(0,0,0);
  shieldBubble.visible=false;$('hitflash').style.opacity=0;setMode('playing');updateHUD();$('scene').focus();
@@ -112,13 +113,13 @@ function step(dt){
 }
 const cameraTarget=V(),desiredCamera=V(),lookAt=V();
 function updateCamera(dt){
- const home=game.mode==='home',mobile=innerWidth<701;
+ const home=game.mode==='home',mobile=innerWidth<701,stackedHome=mobile&&innerHeight>500;
  if(home){
-  desiredCamera.set(mobile?8:7.5,5.8,mobile?10:8.6);
-  lookAt.set(mobile?0:-3.7,mobile?-.35:1.35,mobile?0:-.6);
+  desiredCamera.set(stackedHome?8:7.5,5.8,stackedHome?10:8.6);
+  lookAt.set(stackedHome?0:-3.7,stackedHome?-.35:1.35,stackedHome?0:-.6);
  }else{desiredCamera.set(game.x*(mobile?.55:.22),mobile?7:6.5,mobile?14:11.8);lookAt.set(game.x*(mobile?.45:.13),1.0,mobile?-10:-12)}
  camera.position.lerp(desiredCamera,1-Math.exp(-dt*4));cameraTarget.lerp(lookAt,1-Math.exp(-dt*4));camera.lookAt(cameraTarget);
- camera.fov=T.MathUtils.damp(camera.fov,home?(mobile?50:45):(mobile?60:52),5,dt);camera.updateProjectionMatrix();
+ camera.fov=T.MathUtils.damp(camera.fov,home?(stackedHome?50:45):(mobile?60:52),5,dt);camera.updateProjectionMatrix();
 }
 let hudTick=0;
 function frame(now){
@@ -133,7 +134,7 @@ function frame(now){
   $('hitflash').style.opacity=game.invincible>1.5?((game.invincible-1.5)*.28):0;
   hudTick+=dt;if(hudTick>.09){updateHUD();hudTick=0}
  }else if(game.mode==='home'){
-  menuDistance+=dt*4;updateWorld(menuDistance,clockTime);rider.position.x=innerWidth<701?0:1.1;rider.rotation.y=-.28;rider.rotation.z=Math.sin(clockTime*1.1)*.025;
+  menuDistance+=dt*4;updateWorld(menuDistance,clockTime);rider.position.x=innerWidth<701&&innerHeight>500?0:1.1;rider.rotation.y=-.28;rider.rotation.z=Math.sin(clockTime*1.1)*.025;
  }
  if(game.mode!=='paused'){
   animateRider(dt,clockTime,game.mode==='playing'||game.mode==='home',game.mode==='home'?0:game.jumpY,game.duck>0);
