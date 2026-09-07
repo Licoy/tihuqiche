@@ -11,14 +11,20 @@ const deferred = () => {
 };
 const source = await readFile(new URL('../src/boot.js', import.meta.url), 'utf8');
 const catalogSource = await readFile(new URL('../src/outfit-thumbnails.js', import.meta.url), 'utf8');
-const imports = [...catalogSource.matchAll(/import (\w+) from '(.+)\?inline';/g)];
+const imports = [...catalogSource.matchAll(/import (\w+) from '(.+\.png)(?:\?inline)?';/g)];
 const dataUrl = async file => `data:image/png;base64,${(await readFile(file)).toString('base64')}`;
-const images = await Promise.all(imports.map(([, , file]) => dataUrl(new URL(`../src/${file}`, import.meta.url))));
-const catalog = new Function(...imports.map(([, name]) => name), `${catalogSource.replace(/^import .*;\n/gm, '').replace('export const', 'const')}\nreturn OUTFIT_THUMBNAILS;`)(...images);
-const logo = await dataUrl(new URL('../src/assets/pelican-mark.png', import.meta.url));
+const catalogFor = new Function(...imports.map(([, name]) => name), `${catalogSource.replace(/^import .*;\n/gm, '').replace('export const', 'const')}\nreturn OUTFIT_THUMBNAILS;`);
+const assets = {
+  online: { images: imports.map(([, , file]) => `/src/${file.replace(/^\.\//, '')}`), logo: '/src/assets/pelican-mark.png' },
+  offline: {
+    images: await Promise.all(imports.map(([, , file]) => dataUrl(new URL(`../src/${file}`, import.meta.url)))),
+    logo: await dataUrl(new URL('../src/assets/pelican-mark.png', import.meta.url)),
+  },
+};
 
 // Exercise the actual startup orchestration with controlled resource promises, not GPU output.
-function fixture({ foreign = false, imageGate, frameGate } = {}) {
+function fixture({ format = 'online', foreign = false, imageGate, frameGate } = {}) {
+  const { logo, images } = assets[format], catalog = catalogFor(...images);
   const pending = deferred(), events = { progress: [], completed: 0, failures: [], decoded: [], logs: [] };
   const document = {
     images: foreign ? [{ decode: () => pending.promise, naturalWidth: 1, naturalHeight: 1 }] : [],
@@ -36,19 +42,21 @@ function fixture({ foreign = false, imageGate, frameGate } = {}) {
   }
   const dependencies = { logo, OUTFIT_THUMBNAILS: catalog, decodeImage, runBootTasks, waitForPageResources, Image, document, window, console: { error: (...args) => events.logs.push(args) } };
   const finish = new Function(...Object.keys(dependencies), `${source.replace(/^import .*;\n/gm, '').replaceAll('export ', '')}\nreturn finishBoot;`)(...Object.values(dependencies));
-  return { events, start: () => finish({ whenReady: () => frameGate ? frameGate.promise : Promise.resolve() }, {}) };
+  return { events, urls: [...new Set([logo, ...images])], start: () => finish({ whenReady: () => frameGate ? frameGate.promise : Promise.resolve() }, {}) };
 }
 
 test('startup finishes with game resources ready even if injected images and fonts never settle', async () => {
-  const { events, start } = fixture({ foreign: true });
-  const finished = start();
-  await tick();
-  const progress = events.progress.at(-1);
-  assert.equal(events.completed, 1, `startup stuck at ${progress.completed}/${progress.total} on unrelated page resources`);
-  await finished;
-  assert.deepEqual(events.failures, []);
-  assert.equal(events.decoded.length, new Set([logo, ...images]).size);
-  assert.equal(new Set(events.decoded).size, events.decoded.length);
+  for (const format of ['online', 'offline']) {
+    const { events, start, urls } = fixture({ format, foreign: true });
+    const finished = start();
+    await tick();
+    const progress = events.progress.at(-1);
+    assert.equal(events.completed, 1, `${format} startup stuck at ${progress.completed}/${progress.total} on unrelated page resources`);
+    await finished;
+    assert.deepEqual(events.failures, []);
+    assert.deepEqual(events.decoded, urls);
+    assert.equal(new Set(events.decoded).size, events.decoded.length);
+  }
 });
 
 test('startup still waits for its own logo decode and the real engine readiness promise', async () => {

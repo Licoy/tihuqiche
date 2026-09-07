@@ -37,7 +37,7 @@ try {
       const payload=Buffer.from(images[category][id].split(',')[1],'base64');
       assert.equal(payload.readUInt32BE(16),128);assert.equal(payload.readUInt32BE(20),128);
       await writeFile(resolve(assetDir,filename),payload);bytes+=(await stat(resolve(assetDir,filename))).size;
-      imports.push(`import ${variable} from './assets/outfits/${filename}?inline';`);
+      imports.push(`import ${variable} from './assets/outfits/${filename}';`);
       entries.push(`${JSON.stringify(id)}: ${variable}`);
     }
     groups.push(`  ${category}: {${entries.join(', ')}},`);
@@ -47,12 +47,20 @@ try {
     `// Generated from actual rider models; regenerate with node scripts/generate-outfit-thumbnails.mjs\n${imports.join('\n')}\n\nconst options = {\n${groups.join('\n')}\n};\nexport const OUTFIT_THUMBNAILS = {category: {\n${categories}\n}, options};\n`);
   const sheetPath='/private/tmp/tihuqiche-outfit-contact-sheet.png';
   await writeFile(sheetPath,Buffer.from(sheet.split(',')[1],'base64'));
-  // Inspect Vite's actual transformed import to verify every asset is inlined.
+  // Verify Vite exposes loadable PNG files and preserves the outfit mapping.
   const mapping=await page.evaluate(async()=>{
     const {OUTFIT_THUMBNAILS:t}=await import('/src/outfit-thumbnails.js');
-    return {categories:Object.keys(t.category),options:Object.fromEntries(Object.entries(t.options).map(([k,v])=>[k,Object.keys(v)])),inline:[...Object.values(t.category),...Object.values(t.options).flatMap(Object.values)].every(v=>v.startsWith('data:image/png;base64,'))};
+    const urls=[...new Set([...Object.values(t.category),...Object.values(t.options).flatMap(Object.values)])];
+    await Promise.all(urls.map(async src=>{
+      const url=new URL(src,location.href);
+      if(url.origin!==location.origin||!url.pathname.endsWith('.png'))throw new Error(`Expected PNG file URL: ${src}`);
+      const image=new Image();image.src=url.href;
+      await image.decode();
+      if(image.naturalWidth!==128||image.naturalHeight!==128)throw new Error(`Unexpected thumbnail dimensions: ${src}`);
+    }));
+    return {categories:Object.keys(t.category),options:Object.fromEntries(Object.entries(t.options).map(([k,v])=>[k,Object.keys(v)])),files:urls.length};
   });
-  assert.equal(mapping.inline,true);assert.deepEqual(mapping.categories,Object.keys(RIDER_OPTIONS));
+  assert.equal(mapping.files,index);assert.deepEqual(mapping.categories,Object.keys(RIDER_OPTIONS));
   for(const [key,options] of Object.entries(RIDER_OPTIONS))assert.deepEqual(mapping.options[key],options.map(o=>o.id));
   console.log(JSON.stringify({files:index,bytes,dimensions:'128x128',mapping,sheetPath},null,2));
 } finally {

@@ -3,7 +3,7 @@ import { inject } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { faGithub } from '@fortawesome/free-brands-svg-icons';
 import { faVolumeHigh, faVolumeXmark, faSun, faMoon, faDesktop, faPause } from '@fortawesome/free-solid-svg-icons';
-import logo from '../assets/pelican-mark.png?inline';
+import logo from '../assets/pelican-mark.png';
 
 const { state, copy, theme, locale, soundEnabled, setTheme, setLocale, toggleSound, pauseGame } = inject('app');
 const themeIcons = { system: faDesktop, light: faSun, dark: faMoon };

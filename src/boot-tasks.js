@@ -21,10 +21,11 @@ export function waitForPageResources(page) {
       style.removeEventListener('load', loaded);
       style.removeEventListener('error', failed);
     };
-    const loaded = () => { cleanup(); resolve(); };
-    const failed = () => { cleanup(); reject(new Error(`Resource failed: ${style.href}`)); };
-    if (style.dataset.bootState === 'loaded') loaded();
-    else if (style.dataset.bootState === 'error') failed();
+    const loaded = () => { style.dataset.bootState = 'loaded'; style.media = 'all'; cleanup(); resolve(); };
+    const failed = () => { style.dataset.bootState = 'error'; cleanup(); reject(new Error(`Resource failed: ${style.href}`)); };
+    if (style.dataset.bootState === 'error') failed();
+    // Element load events do not reach Window; a parsed sheet also covers an earlier load.
+    else if (style.sheet || style.dataset.bootState === 'loaded') loaded();
     else {
       style.addEventListener('load', loaded);
       style.addEventListener('error', failed);

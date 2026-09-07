@@ -86,6 +86,29 @@ test('required CSS already loaded or failed is recognized before listeners attac
   assert.equal(failed.listeners.size, 0);
 });
 
+test('CSS loaded before startup is recognized from CSSOM without a window load marker', async () => {
+  const { resource, listeners } = styleResource();
+  resource.sheet = { href: resource.href }; resource.media = 'print';
+  let ready = false;
+  const pending = waitForPageResources(resourcePage([resource])).then(() => { ready = true; });
+  await tick();
+  assert.equal(ready, true, 'already downloaded CSS leaves startup waiting for an event that will not repeat');
+  await pending;
+  assert.equal(resource.media, 'all'); assert.equal(resource.dataset.bootState, 'loaded');
+  assert.equal(listeners.size, 0);
+});
+
+test('a stylesheet load event persists readiness for the second startup consumer', async () => {
+  const { resource, listeners } = styleResource();
+  const page = resourcePage([resource]), first = waitForPageResources(page);
+  resource.dispatchEvent(new Event('load')); await first;
+  assert.equal(resource.dataset.bootState, 'loaded', 'first waiter must persist the element readiness');
+  let ready = false;
+  const second = waitForPageResources(page).then(() => { ready = true; });
+  await tick(); assert.equal(ready, true, 'second waiter must not wait for another CSS load event');
+  await second; assert.equal(listeners.size, 0);
+});
+
 test('required CSS load errors reject and release both event listeners', async () => {
   const { resource, listeners } = styleResource();
   const rejected = assert.rejects(waitForPageResources(resourcePage([resource])), /game\.css/);
@@ -172,12 +195,10 @@ test('optional analytics failure cannot block startup or reopen the loader after
 });
 
 test('required CDN resources remain fatal while same-origin optional scripts are isolated', () => {
-  const { boot, listeners, elements, Script, Link, warnings } = bootEnvironment();
+  const { boot, listeners, elements, Script, warnings } = bootEnvironment();
   const optional = new Script(); optional.src = '/cdn-cgi/rum.js';
   listeners.error({ target: optional });
   assert.equal(elements['boot-retry'].hidden, true); assert.equal(warnings.length, 1);
-  const style = new Link(); style.rel = 'stylesheet'; style.dataset.bootRequired = '';
-  listeners.load({ target: style }); assert.equal(style.dataset.bootState, 'loaded');
   const required = new Script(); required.src = 'https://cdn.example/game.js'; required.dataset.bootRequired = '';
   listeners.error({ target: required }); boot.progress({ completed: 1, total: 1 }); boot.complete();
   assert.equal(elements.loading.hidden, false); assert.match(elements['boot-detail'].textContent, /cdn\.example\/game\.js/);

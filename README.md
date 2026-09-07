@@ -114,11 +114,11 @@ pnpm preview
 
 游戏入口脚本与构建样式通过 `data-boot-required` 标记为必需资源，启动只等待必需样式，不等待整个页面的 `load`；Cloudflare 等可选统计脚本下载失败仅保留控制台警告，不阻断启动或已显示的游戏，必需资源失败仍显示错误与重试入口
 
-构建首先生成在线资源，再用 Vue 服务端渲染输出中文 `dist/index.html` 和英文 `dist/en/index.html`，最后独立使用 `vite-plugin-singlefile` 生成完整内嵌的 `dist/offline.html`；在线版需通过 HTTP 服务访问，离线版可直接打开
+构建首先生成在线资源，再用 Vue 服务端渲染输出中文 `dist/index.html` 和英文 `dist/en/index.html`，最后独立使用 `vite-plugin-singlefile` 生成完整内嵌的 `dist/offline.html`；在线 Logo 与全部装扮 PNG 使用含内容 hash 的独立文件 URL，便于浏览器缓存复用，预渲染与运行时复用同一地址；离线版继续内嵌全部图片，在线版需通过 HTTP 服务访问，离线版可直接打开
 
 标题、描述、关卡名称和 JSON-LD 与界面共享 `src/locales.js`、`src/levels.js`；两种语言的静态 HTML 都包含实际页面内容、canonical、hreflang、Open Graph 与 Twitter Card，不依赖执行 JavaScript 才能抓取；`public/` 提供 favicon、1200×630 分享图片、robots.txt 和 sitemap.xml
 
-构建会检查预渲染内容与离线资源引用，并保留项目和 Three.js 的 MIT 许可证；`dist/` 随仓库保留，提交代码前请同步构建产物
+构建会检查预渲染内容、在线图片文件与离线资源引用；在线 HTML 仅简短引用 `dist/LICENSE.txt`，该文件包含项目和 Three.js 的 MIT 许可证，离线单文件仍携带完整许可说明，仓库原始许可证保留；`dist/` 随仓库保留，提交代码前请同步构建产物
 
 场景、角色和游戏工厂保留原有模型与物理步骤，因此整体初始化函数超过 50 行，内部操作仍独立分组；这些工厂统一管理动画、事件和 GPU 资源的销毁，避免为一次性模型构造增加额外接口
 

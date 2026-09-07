@@ -20,5 +20,5 @@ export default defineConfig(({ mode }) => ({
     }] : []),
     ...(mode === 'offline' ? [viteSingleFile()] : []),
   ],
-  build: { target: 'es2022', modulePreload: false },
+  build: { target: 'es2022', modulePreload: false, assetsInlineLimit: 0 },
 }));

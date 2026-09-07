@@ -2,7 +2,7 @@
 import { inject } from 'vue';
 import { SHARE_QR } from '../share-qr.js';
 import { RIDER_OPTIONS } from '../appearance.js';
-import logo from '../assets/pelican-mark.png?inline';
+import logo from '../assets/pelican-mark.png';
 const props = defineProps({ result: { type: Object, required: true }, title: { type: String, required: true } });
 const { copy, locale, levelName } = inject('app');
 function outfit(player) { return ['identity', 'skin', 'vehicle'].map(key => RIDER_OPTIONS[key].find(option => option.id === player.appearance[key])[locale.value]).join(' · '); }

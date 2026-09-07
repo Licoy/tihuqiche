@@ -67,9 +67,12 @@ async function verifyOutfitThumbnails(page, check) {
     await tabs.nth(i).click();
     const images = page.locator('#wardrobe .outfit-thumb');
     await images.evaluateAll(images => Promise.all(images.map(image => image.decode())));
-    check(`outfit category ${i + 1} and every option use decoded inline PNGs`, await page.locator('#wardrobe .wardrobe-tabs button, #wardrobe .wardrobe-options button').evaluateAll(buttons => buttons.every(button => {
+    check(`outfit category ${i + 1} and every option use decoded PNGs for the target packaging`, await page.locator('#wardrobe .wardrobe-tabs button, #wardrobe .wardrobe-options button').evaluateAll(buttons => buttons.every(button => {
       const image = button.querySelector('img.outfit-thumb');
-      return image && image.complete && image.naturalWidth > 0 && image.naturalHeight > 0 && image.src.startsWith('data:image/png;base64,');
+      if (!image || !image.complete || image.naturalWidth <= 0 || image.naturalHeight <= 0) return false;
+      if (location.protocol === 'file:') return image.src.startsWith('data:image/png;base64,');
+      const url = new URL(image.src);
+      return url.origin === location.origin && url.pathname.startsWith('/assets/') && url.pathname.endsWith('.png');
     })));
   }
 }

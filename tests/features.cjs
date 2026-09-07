@@ -204,6 +204,12 @@ async function verifyOnline({ browser, errors, check }) {
       await page.goto(origin + '/en/');
       await page.waitForFunction(() => document.querySelector('#loading')?.hidden);
       check('online entry loads split JavaScript and CSS assets', requests.some(url => /\/assets\/.*\.js(?:\?|$)/.test(url)) && requests.some(url => /\/assets\/.*\.css(?:\?|$)/.test(url)));
+      check('online logo is decoded from a standalone image shared with the loader', await page.locator('.brand-mark').evaluate(image => {
+        const url = new URL(image.src);
+        return image.complete && image.naturalWidth > 0 && url.origin === location.origin && url.pathname.startsWith('/assets/')
+          && url.pathname.endsWith('.png') && document.querySelector('.boot-brand img').src === image.src;
+      }));
+      check('online entry requests standalone outfit PNG files', requests.some(url => /\/assets\/(?:vehicle|hat|skin|identity|scarf|glasses|clothes)-[^/]+\.png(?:\?|$)/.test(url)));
       check('online entry loads all assets without failed requests', failures, []);
       check('online entry renders English UI', await page.locator('#start').innerText().then(text => text.includes('Let’s go for a ride')));
       check('production does not expose the test API or legacy globals', await page.evaluate(() => window.__pelicanTest === undefined && window.game === undefined && window.step === undefined));

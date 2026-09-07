@@ -1,4 +1,4 @@
-import logo from './assets/pelican-mark.png?inline';
+import logo from './assets/pelican-mark.png';
 import { OUTFIT_THUMBNAILS } from './outfit-thumbnails.js';
 import { decodeImage, runBootTasks, waitForPageResources } from './boot-tasks.js';
 
