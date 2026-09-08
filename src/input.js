@@ -28,7 +28,7 @@ export function bindInput(canvas, api) {
   trapFocus(event,overlay);
   if(event.repeat)return;
   if(app.helpOpen.value){if(event.code==='Escape')app.closeHelp();return}
-  if(app.wardrobeOpen.value)return;
+  if(app.wardrobeOpen.value||app.settingsOpen.value)return;
   const target=event.target;
   if(target.closest('input,select,textarea,[contenteditable="true"],[contenteditable=""]')||target.isContentEditable)return;
   if(event.code==='KeyP'||event.code==='Escape'){
@@ -43,7 +43,7 @@ export function bindInput(canvas, api) {
  },options);
  let touchStart=null;
  canvas.addEventListener('pointerdown',event=>{
-  if(game.mode==='playing'&&!app.helpOpen.value&&!app.wardrobeOpen.value){touchStart={x:event.clientX,y:event.clientY,id:event.pointerId};canvas.setPointerCapture(event.pointerId)}
+  if(game.mode==='playing'&&!app.helpOpen.value&&!app.wardrobeOpen.value&&!app.settingsOpen.value){touchStart={x:event.clientX,y:event.clientY,id:event.pointerId};canvas.setPointerCapture(event.pointerId)}
  },options);
  canvas.addEventListener('pointerup',event=>{
   if(!touchStart||touchStart.id!==event.pointerId)return;

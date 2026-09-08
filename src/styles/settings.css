@@ -1,0 +1,35 @@
+#settings { padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); }
+#settings .settings-panel { width: min(760px, 100%); max-width: 100%; max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); padding: 24px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; text-align: left; }
+#settings .settings-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+#settings .settings-heading h2 { margin: 0; font-size: 27px; }
+#settings .settings-heading button { flex: 0 0 44px; width: 44px; height: 44px; font-size: 24px; font-weight: 400; padding: 0; }
+#settings .settings-note { font-size: 12px; line-height: 1.55; margin: 12px 0 20px; }
+#settings .settings-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin-bottom: 20px; }
+#settings .settings-group { min-width: 0; border: 0; border-top: 1px solid var(--border); padding: 12px 0 0; margin: 0; }
+#settings .settings-group legend { font-size: 12px; font-weight: 800; padding: 0 10px 0 0; }
+#settings .settings-switch { display: flex; align-items: center; justify-content: space-between; gap: 18px; min-height: 54px; padding: 8px 0; cursor: pointer; }
+#settings .settings-switch strong { display: block; font-size: 13px; }
+#settings .settings-switch small { display: block; margin-top: 4px; color: var(--muted); font-size: 11px; line-height: 1.45; }
+#settings .settings-switch input { flex: 0 0 20px; width: 20px; height: 20px; margin: 0 2px 0 0; accent-color: var(--orange); cursor: pointer; }
+#settings .settings-label, #settings .settings-volume { display: block; font-size: 12px; font-weight: 750; margin: 14px 0 8px; }
+#settings .settings-sound-style { display: flex; gap: 10px; }
+#settings .settings-sound-style select { min-width: 0; flex: 1; height: 44px; border: 1px solid var(--border); border-radius: 8px; background: var(--paper); padding: 0 12px; color: var(--ink); }
+#settings .settings-sound-style .secondary { flex: 0 0 auto; width: auto; min-width: 88px; min-height: 44px; margin: 0; padding: 10px 16px; }
+#settings .settings-volume { display: flex; justify-content: space-between; }
+#settings .settings-volume output { color: var(--muted); font-variant-numeric: tabular-nums; }
+#settings #settings-volume { display: block; width: 100%; height: 32px; margin: 0; accent-color: var(--orange); cursor: pointer; }
+#settings .settings-error { font-size: 12px; line-height: 1.5; color: var(--orange); margin: 0 0 16px; }
+#settings .primary { justify-content: center; }
+#settings :is(input, select):focus-visible { outline: 2px solid var(--orange); outline-offset: 3px; }
+@media (max-width: 700px) {
+  #settings .settings-panel { width: min(480px, 100%); }
+  #settings .settings-columns { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+}
+@media (max-width: 540px) {
+  #settings .settings-panel { padding: 18px; border-radius: 18px; }
+  #settings .settings-heading h2 { font-size: 23px; }
+  #settings .settings-switch { gap: 12px; }
+}
+@media (max-width: 370px) {
+  body:not(.playing) #sound { display: none; }
+}

@@ -1,18 +1,19 @@
 import { upgradeMessages } from './locales-upgrade.js';
+import { settingsMessages } from './locales-settings.js';
 export const messages = {
   zh: {
     brand: '鹈鹕骑车', logo: '鹈鹕骑单车', title: '鹈鹕骑车 · 免费 3D 骑车游戏',
     description: '骑上小单车，和鹈鹕一起穿越珊瑚海岸、雨林遗迹、落日神庙、荒漠、骷髅岛与上海滩；免费 3D 骑行闯关游戏，支持键盘、触屏和离线游玩',
     headline: ['鹈鹕', '骑车'], intro: ['长嘴巴，小单车，还有一路好风景', '迎着海风出发，下一站是自由'],
     routes: '选择你的骑行路线', locked: '尚未解锁', unlockHint: '通关前一关解锁', ready: '等待出发',
-    start: '出发，去兜风', best: '本关最佳 {score} 分', journey: '六段旅程 · 一路顺风', helpOpen: '第一次骑？看这里',
+    start: '出发，去兜风', best: '本关最佳 {score} 分', journey: '十二段旅程 · 一路顺风', helpOpen: '第一次骑？看这里',
     github: 'GitHub 源码仓库（新窗口打开）', soundOn: '音效：开', soundOff: '音效：关', pause: '暂停游戏',
     theme: '外观', system: '跟随系统', light: '浅色', dark: '深色', language: '语言', switchLanguage: 'Switch to English',
     canvas: '鹈鹕骑车 3D 游戏，方向键变道，上或空格跳跃，下键低头',
     hp: '剩余 {hp} 点体力', shield: '护盾已就绪 · 抵挡一次碰撞', move: '变道', jump: '跳跃', duck: '低头', space: '空格', pauseShort: '暂停', left: '向左变道', right: '向右变道',
     pauseTag: '稍作休息', pauseTitle: '歇一会，再出发', pauseDesc: '好风景会等你，旅程暂停在这里', resume: '继续骑行', restart: '重新挑战本关', home: '返回骑行地图',
-    allTag: '全程抵达', wonTag: '本站完成', lostTag: '再骑一程', allTitle: '六段风景，都骑过啦', wonTitle: '这一站，漂亮抵达', lostTitle: '拍拍翅膀，再来一次',
-    allDesc: '从珊瑚海岸到上海滩，你完成了整段旅程；回到地图，还可以挑战每一关的三星纪录',
+    allTag: '全程抵达', wonTag: '本站完成', lostTag: '再骑一程', allTitle: '十二段风景，都骑过啦', wonTitle: '这一站，漂亮抵达', lostTitle: '拍拍翅膀，再来一次',
+    allDesc: '从珊瑚海岸到迪拜天际线，你完成了整段旅程；回到地图，还可以挑战每一关的三星纪录',
     wonDesc: '已解锁下一站「{name}」，小鱼和好风景还在前面等你', lostDesc: '高木箱要变道，矮木栏要跳跃，蓝色横杆下记得低头；每次重试都从本关开始',
     rideStat: '骑行 / 米', fishStat: '收集 / 小鱼', scoreStat: '本关得分', again: '再游一程', next: '下一站，继续冒险', retry: '再骑一次',
     helpTag: '第一次骑行', helpTitle: '骑得开心，也要看路',
@@ -29,14 +30,14 @@ export const messages = {
     description: 'Ride with a pelican through Coral Coast, Jungle Ruins, Sunset Temple, Desert Dunes, Skull Island and the Bund in Shanghai; a free 3D cycling game with keyboard, touch and offline play',
     headline: ['Pelican', 'Pedal Run'], intro: ['A long beak, a little bike, a world to explore', 'Catch the sea breeze and see where it takes you'],
     routes: 'Choose your cycling route', locked: 'Locked', unlockHint: 'Complete the previous route to unlock', ready: 'Ready to ride',
-    start: 'Let’s go for a ride', best: 'Personal best · {score}', journey: 'Six routes · One little bike', helpOpen: 'Your first ride? Start here',
+    start: 'Let’s go for a ride', best: 'Personal best · {score}', journey: 'Twelve routes · One little bike', helpOpen: 'Your first ride? Start here',
     github: 'GitHub source repository (opens a new tab)', soundOn: 'Sound: on', soundOff: 'Sound: off', pause: 'Pause game',
     theme: 'Appearance', system: 'System', light: 'Light', dark: 'Dark', language: 'Language', switchLanguage: '切换到中文',
     canvas: 'Pelican cycling 3D game; use arrow keys to steer, up or space to jump, down to duck',
     hp: '{hp} health remaining', shield: 'Shield ready · Blocks one collision', move: 'Steer', jump: 'Jump', duck: 'Duck', space: 'Space', pauseShort: 'Pause', left: 'Steer left', right: 'Steer right',
     pauseTag: 'Take a little breather', pauseTitle: 'A moment by the road', pauseDesc: 'The scenery can wait; your ride is paused here', resume: 'Keep riding', restart: 'Restart this route', home: 'Back to the route map',
-    allTag: 'The whole journey', wonTag: 'Route complete', lostTag: 'One more ride', allTitle: 'Six routes, all yours', wonTitle: 'A lovely place to arrive', lostTitle: 'Shake your wings, try again',
-    allDesc: 'From Coral Coast to the Bund, you have ridden the whole journey; head back to the map and chase three stars on every route',
+    allTag: 'The whole journey', wonTag: 'Route complete', lostTag: 'One more ride', allTitle: 'Twelve routes, all yours', wonTitle: 'A lovely place to arrive', lostTitle: 'Shake your wings, try again',
+    allDesc: 'From Coral Coast to Dubai, you have ridden the whole journey; head back to the map and chase three stars on every route',
     wonDesc: 'Next stop unlocked: {name}; more fish and fresh scenery are waiting up ahead', lostDesc: 'Steer around tall crates, jump over low hurdles, and duck under blue bars; each retry starts at the beginning of this route',
     rideStat: 'Distance / m', fishStat: 'Fish collected', scoreStat: 'Route score', again: 'Ride the world again', next: 'On to the next stop', retry: 'Ride again',
     helpTag: 'Your first ride', helpTitle: 'Enjoy the ride, watch the road',
@@ -50,7 +51,7 @@ export const messages = {
   },
 };
 
-for (const locale of ['zh', 'en']) Object.assign(messages[locale], upgradeMessages[locale]);
+for (const locale of ['zh', 'en']) Object.assign(messages[locale], upgradeMessages[locale], settingsMessages[locale]);
 
 export function translate(locale, key, values = {}) {
   return messages[locale][key].replace(/\{(\w+)\}/g, (_, name) => String(values[name]));

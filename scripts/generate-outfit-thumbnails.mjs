@@ -82,7 +82,8 @@ async function renderThumbnails(){
   const camera=new T.OrthographicCamera(-1,1,1,-1,.01,100);
   const canvas=document.createElement('canvas');canvas.width=canvas.height=128;
   const ctx=canvas.getContext('2d',{willReadFrequently:true});
-  const sheet=document.createElement('canvas');sheet.width=5*160;sheet.height=5*162;
+  const sheet=document.createElement('canvas');sheet.width=5*160;
+  sheet.height=Math.ceil(Object.values(RIDER_OPTIONS).reduce((count,options)=>count+options.length,0)/5)*162;
   const sheetContext=sheet.getContext('2d');sheetContext.fillStyle='#f5f0df';sheetContext.fillRect(0,0,sheet.width,sheet.height);
   const images={};let cell=0;
   try{
@@ -95,7 +96,7 @@ async function renderThumbnails(){
         let subject;
         if(category==='vehicle'){
           subject=model.rider.getObjectByName(`vehicle:${id}`);
-          subject.children.filter(child=>child.name.startsWith('foot:')).forEach(child=>child.removeFromParent());
+          subject.children.filter(child=>child.name.startsWith('foot:')||child.name==='boost-flame').forEach(child=>child.removeFromParent());
         }else if(['hat','scarf','glasses'].includes(category)&&id!=='none'){
           subject=model.rider.getObjectByName(`${category}:${id}`);
         }else if(category==='hat'||category==='glasses')subject=head;

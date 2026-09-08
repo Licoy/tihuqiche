@@ -3,10 +3,11 @@ import { faArrowUp, faArrowDown, faArrowsLeftRight, faQuestion } from '@fortawes
 import { V } from './world.js';
 import { LEVELS } from './levels.js';
 import { campaignLayout, createEndlessLayout } from './course-layout.js';
+import { addEntityDetails } from './course-models.js';
 
 export function createCourse(world, state) {
 const {scene,mesh,orb,box,finish}=world;
-let entities=[],nextId=0,stream=null;
+let entities=[],nextId=0,stream=null,assistMarkers=true;
 const obstacleRoot=new T.Group();scene.add(obstacleRoot);
 const markerTextures=new Map();
 function marker(glyph,color){
@@ -19,7 +20,14 @@ function marker(glyph,color){
   ctx.fillStyle='#fff8e5';ctx.fill(new Path2D(path));ctx.restore();
   markerTextures.set(key,new T.SpriteMaterial({map:new T.CanvasTexture(c),depthTest:true}));
  }
- const s=new T.Sprite(markerTextures.get(key));s.name=`course-marker:${glyph.iconName}`;s.scale.set(.85,.85,1);s.userData.courseMarker=true;return s;
+ const s=new T.Sprite(markerTextures.get(key));s.name=`course-marker:${glyph.iconName}`;s.scale.set(.85,.85,1);
+ s.userData.courseMarker=true;s.userData.assistMarker=glyph!==faQuestion;s.visible=!s.userData.assistMarker||assistMarkers;return s;
+}
+function setAssistMarkers(enabled){
+ if(typeof enabled!=='boolean')throw new TypeError('Assist markers must be boolean');
+ if(assistMarkers===enabled)return;
+ assistMarkers=enabled;
+ for(const entity of entities)for(const child of entity.mesh.children)if(child.userData.assistMarker)child.visible=enabled;
 }
 function makeEntity(type,lane,at,height=1.35){
  const g=new T.Group();g.position.set((lane-1)*3.4,0,-at);obstacleRoot.add(g);
@@ -50,6 +58,7 @@ function makeEntity(type,lane,at,height=1.35){
   const diagonal=box('#d9ab70',[0,1.4,.9],[.15,3.1,.12],g);diagonal.rotation.z=.61;
   const m=marker(faArrowsLeftRight,'#8a6b4a');m.position.y=3.48;g.add(m);
  }
+ addEntityDetails(world,g,type);
  const e={id:nextId++,type,lane,at,height,mesh:g,resolved:false,resolvedBy:[]};entities.push(e);return e;
 }
 function addEntry(entry){const e=makeEntity(entry.type,entry.lane,entry.at,entry.height);if(entry.item)e.item=entry.item}
@@ -77,7 +86,7 @@ function updateEntities(time){
  for(const e of entities){
   e.mesh.position.z=state.distance-e.at;
   e.mesh.visible=!e.resolved&&e.mesh.position.z>-240&&e.mesh.position.z<45;
-  if(e.mesh.visible)for(const child of e.mesh.children)if(child.userData.courseMarker){
+  if(e.mesh.visible)for(const child of e.mesh.children)if(child.visible&&child.userData.courseMarker){
    child.getWorldPosition(markerPosition).applyMatrix4(world.camera.matrixWorldInverse);
    const size=Math.max(.85,-markerPosition.z*2*Math.tan(world.camera.fov*Math.PI/360)*32/innerHeight);
    child.scale.set(size,size,1);
@@ -106,5 +115,5 @@ function updateParticles(dt){
 function clearParticles(){particles.forEach(p=>scene.remove(p.mesh));particles.length=0}
 function clearCourse(){obstacleRoot.clear();entities=[];nextId=0;stream=null}
 function dispose(){clearCourse();clearParticles();markerTextures.forEach(m=>{m.map.dispose();m.dispose()});markerTextures.clear()}
-return {get entities(){return entities},generateCourse,streamCourse,updateEntities,burst,updateParticles,clearParticles,clearCourse,dispose};
+return {get entities(){return entities},generateCourse,streamCourse,updateEntities,setAssistMarkers,burst,updateParticles,clearParticles,clearCourse,dispose};
 }

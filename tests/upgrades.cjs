@@ -9,27 +9,35 @@ async function verifyBoost(page, check) {
   await start(page, 'campaign');
   await page.keyboard.press('Space');
   check('Space without fish does not jump or accelerate', await page.evaluate(() => {
-    const p = game.players[0]; return [p.vy, p.boostRemaining, p.fishBalance];
-  }), [0, 0, 0]);
+    const p = game.players[0]; return [p.vy, p.boosting, p.fishBalance];
+  }), [0, false, 0]);
   const collected = await rideToFinish(page, { fishTarget: 10 });
-  check('real route pickups charge boost before the finish', collected.mode === 'playing' && collected.fish >= 10);
+  check('real route pickups fuel boost before the finish', collected.mode === 'playing' && collected.fish >= 10);
   const before = await page.evaluate(() => ({ ...game.players[0] }));
   await page.keyboard.press('Space');
-  check('keyboard boost spends only available fish', await page.evaluate(() => {
-    const p = game.players[0]; return [p.fishBalance, p.fishCollected, p.boostRemaining, p.vy];
-  }), [before.fishBalance - 10, before.fishCollected, 2.5, 0]);
+  check('keyboard starts continuous boost without a ten-fish purchase', await page.evaluate(() => {
+    const p = game.players[0]; return [p.fishBalance, p.fishCollected, p.boosting, p.vy];
+  }), [before.fishBalance, before.fishCollected, true, 0]);
+  await rideToFinish(page, { seconds: .5 });
+  check('half a second burns exactly two fish from actual pickups', await page.evaluate(() => {
+    const p = game.players[0]; return [p.fishCollected - p.fishBalance, p.boosting];
+  }), [2, true]);
   await page.keyboard.press('Space');
-  check('second keypress during boost does not spend again', await page.evaluate(() => game.players[0].fishBalance), before.fishBalance - 10);
-  await page.keyboard.press('Escape');
+  check('second keypress stops the continuous boost', await page.evaluate(() => game.players[0].boosting), false);
+  await rideToFinish(page, { seconds: .5 });
+  check('stopping preserves fuel', await page.evaluate(() => game.players[0].fishCollected - game.players[0].fishBalance), 2);
+  await page.keyboard.press('Space'); await page.keyboard.press('Escape');
   const paused = await page.evaluate(() => JSON.stringify(game.players));
   await page.evaluate(() => { for (let i = 0; i < 360; i++) step(1 / 120); });
   check('paused boost freezes distance and all player timers', await page.evaluate(() => JSON.stringify(game.players)), paused);
   await page.locator('#resume').click();
+  await rideToFinish(page, { seconds: .5 });
+  await page.keyboard.press('Space');
   const result = await rideToFinish(page);
   check('boosted campaign still finishes by real physics', [result.mode, result.hp, result.stars], ['won', 3, 3]);
   check('spent fish remain in result score and persisted record', await page.evaluate(() => {
     const r = game.result, p = r.players[0];
-    return p.fishCollected - p.fishBalance === 10 && r.score === Math.floor(p.distance) + p.fishCollected * 25 + p.hp * 150
+    return p.fishCollected - p.fishBalance === 4 && r.score === Math.floor(p.distance) + p.fishCollected * 25 + p.hp * 150
       && save.records.campaign.best[0] === r.score;
   }));
   check('result snapshot is detached and frozen', await page.evaluate(() => Object.isFrozen(game.result)
@@ -60,7 +68,7 @@ async function verifyDuo(page, check, artifacts) {
   check('P1 charges a boost through actual cooperative pickups', charged.mode === 'playing' && charged.players[0].fishBalance >= 10);
   const p2 = charged.players[1].fishBalance;
   await page.keyboard.press('Space');
-  check('P1 boost leaves P2 fish untouched', await page.evaluate(() => [game.players[0].boostRemaining, game.players[1].boostRemaining, game.players[1].fishBalance]), [2.5, 0, p2]);
+  check('P1 boost leaves P2 fish untouched', await page.evaluate(() => [game.players[0].boosting, game.players[1].boosting, game.players[1].fishBalance]), [true, false, p2]);
   await rideToFinish(page, { seconds: 2 });
   check('independent boost separates riders and engages catchup', await page.evaluate(() => {
     const [a, b] = game.players; return a.distance > b.distance && b.catchupBonus > 0 && a.distance - b.distance <= 22;

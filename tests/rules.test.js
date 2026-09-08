@@ -11,19 +11,41 @@ const result=(game,outcome='won')=>makeResult(game,{outcome,appearances:reactive
 const entity=(type,at=0,id=0,lane=1)=>({id,type,at,lane,height:1.35,resolved:false,resolvedBy:[]});
 function tick(game,entities,dt=1/90){const previous=game.players.map(p=>({...p}));advancePlayers(game,dt);resolveCollisions(game,entities,{previous});return settlePlayers(game)}
 
-test('boost needs ten fish; spends balance only and cannot stack; pause freezes timers',()=>{
+test('boost burns fish one by one, can stop and resume, and freezes while paused',()=>{
  const game=run(),p=game.players[0];
- for(let i=0;i<9;i++)collectFish(p);
  assert.equal(applyAction(p,'boost'),false);collectFish(p);
- assert.equal(applyAction(p,'boost'),true);assert.equal(p.fishBalance,0);assert.equal(p.fishCollected,10);
- assert.equal(applyAction(p,'boost'),false);assert.equal(p.boostRemaining,2.5);
- p.magnetRemaining=p.doubleRemaining=8;game.mode='paused';advancePlayers(game,1);
- assert.equal(p.boostRemaining,2.5);assert.equal(p.magnetRemaining,8);assert.equal(game.distance,0);
- game.mode='playing';advancePlayers(game,.5);assert.equal(p.speed,22.5);assert.equal(p.boostRemaining,2);
- advancePlayers(game,2);assert.equal(p.boostRemaining,0);
- for(let i=0;i<10;i++)collectFish(p);assert.equal(applyAction(p,'boost'),true);
- assert.equal(p.fishCollected,20);assert.equal(p.fishBalance,0);
- p.status='finished';assert.equal(result(game).players[0].score,Math.floor(p.distance)+500+p.bonusScore+450);
+ assert.equal(applyAction(p,'boost'),true);assert.equal(p.fishBalance,1);
+ advancePlayers(game,.125);assert.equal(p.fishBalance,1);assert.equal(p.speed,22.5);
+ assert.equal(applyAction(p,'boost'),true);assert.equal(p.boosting,false);
+ advancePlayers(game,1);assert.equal(p.fishBalance,1);assert.equal(p.boostElapsed,.125);
+ assert.equal(applyAction(p,'boost'),true);
+ p.magnetRemaining=p.doubleRemaining=8;game.mode='paused';
+ const before=JSON.stringify(p);advancePlayers(game,1);assert.equal(JSON.stringify(p),before);
+ game.mode='playing';advancePlayers(game,.125);
+ assert.equal(p.fishBalance,0);assert.equal(p.boosting,false);assert.equal(p.boostElapsed,0);
+ assert.equal(applyAction(p,'boost'),false);assert.equal(p.fishCollected,1);
+ collectFish(p);assert.equal(applyAction(p,'boost'),true);advancePlayers(game,.25);
+ assert.equal(p.fishBalance,0);assert.equal(p.fishCollected,2);
+ p.status='finished';assert.equal(result(game).players[0].score,Math.floor(p.distance)+50+p.bonusScore+450);
+});
+test('continuous boost drains all fuel precisely and does not charge beyond its last fish',()=>{
+ const game=run(),p=game.players[0];
+ for(let i=0;i<13;i++)collectFish(p);
+ applyAction(p,'boost');
+ for(let i=0;i<360;i++)advancePlayers(game,1/120);
+ assert.equal(p.fishBalance,1);assert.equal(p.boosting,true);
+ advancePlayers(game,.5);
+ assert.equal(p.fishBalance,0);assert.equal(p.boosting,false);assert.equal(p.fishCollected,13);
+ const one=run();collectFish(one.players[0]);applyAction(one.players[0],'boost');advancePlayers(one,1);
+ assert.equal(one.players[0].distance,15+.25*7.5);assert.equal(one.players[0].speed,15);
+});
+test('co-op boost burns only each activated rider fuel and terminal riders stop boosting',()=>{
+ const game=run('duo'),[a,b]=game.players;
+ for(let i=0;i<3;i++){collectFish(a);collectFish(b)}
+ applyAction(a,'boost');advancePlayers(game,.5);
+ assert.deepEqual([a.fishBalance,b.fishBalance],[1,3]);assert.equal(b.boostElapsed,0);
+ a.hp=0;settlePlayers(game);assert.equal(a.boosting,false);
+ b.distance=LEVELS[0].length;applyAction(b,'boost');settlePlayers(game);assert.equal(b.boosting,false);
 });
 test('co-op pickup ties alternate seats and an earlier swept contact wins',()=>{
  const game=run('duo'),fish=[entity('fish',0,0),entity('fish',0,1)];
@@ -53,14 +75,14 @@ test('jump and duck clear the corresponding obstacle, not a tall crate',()=>{
 });
 test('co-op catch-up is continuous and excludes downed or finished players',()=>{
  assert.equal(catchupBonus(10),0);assert.equal(catchupBonus(14),.25);assert.equal(catchupBonus(18),.5);assert.equal(catchupBonus(30),.5);
- const game=run('duo');game.players[0].distance=18;game.players[1].boostRemaining=2;
+ const game=run('duo');game.players[0].distance=18;Object.assign(game.players[1],{boosting:true,fishBalance:10});
  advancePlayers(game,1/90);assert.equal(game.players[1].catchupBonus,.5);
  const base=15+5*18/600;assert.equal(game.players[1].speed,base*1.75);
  game.players[0].status='downed';advancePlayers(game,1/90);assert.equal(game.players[1].catchupBonus,0);
  for(let level=0;level<LEVELS.length;level++){
   const g=run('duo');g.level=level;let maximum=0;
   while(g.players.every(p=>p.status==='running')){
-   g.players[0].boostRemaining=2.5;advancePlayers(g,1/90);settlePlayers(g);
+   Object.assign(g.players[0],{boosting:true,fishBalance:10});advancePlayers(g,1/90);settlePlayers(g);
    if(g.players.every(p=>p.status==='running'))maximum=Math.max(maximum,g.players[0].distance-g.players[1].distance);
   }
   assert.ok(maximum<=18.1,`level ${level} maximum gap ${maximum}`);
@@ -109,7 +131,7 @@ test('endless streams deterministically with bounded rows and always a safe lane
  }
  assert.ok(maximum<80,`maximum streamed entities ${maximum}`);
 });
-test('all six campaign routes stay deterministic and a safe-lane rider can finish physically',()=>{
+test('all campaign routes stay deterministic and a safe-lane rider can finish physically',()=>{
  for(let level=0;level<LEVELS.length;level++){
   const entries=campaignLayout(level).map((e,id)=>({...e,id,height:e.height??1.35,resolved:false,resolvedBy:[]}));
   assert.deepEqual(campaignLayout(level),campaignLayout(level));
@@ -155,12 +177,12 @@ test('co-op camera frames the 22m budget and freezes the last view on terminal s
  }
 });
 
-test('portrait wardrobe frames all four vehicles and both views above the panel, then clears its offset',async()=>{
+test('portrait wardrobe frames all vehicles and both views above the panel, then clears its offset',async()=>{
  const T=await import('three');
  const {createGameCamera}=await import('../src/game-camera.js');
  const {createModelPrimitives}=await import('../src/rider-primitives.js');
  const {createRider}=await import('../src/rider.js');
- const {defaultRiderConfig}=await import('../src/appearance.js');
+ const {defaultRiderConfig,RIDER_OPTIONS}=await import('../src/appearance.js');
  const width=Object.getOwnPropertyDescriptor(globalThis,'innerWidth'),height=Object.getOwnPropertyDescriptor(globalThis,'innerHeight');
  const scene=new T.Scene(),primitives=createModelPrimitives(scene),camera=new T.PerspectiveCamera(45,1,.1,340);
  const game=run();game.mode='home';const app={wardrobeOpen:{value:true}};
@@ -170,7 +192,7 @@ test('portrait wardrobe frames all four vehicles and both views above the panel,
    Object.defineProperty(globalThis,'innerWidth',{value:w,configurable:true});
    Object.defineProperty(globalThis,'innerHeight',{value:h,configurable:true});
    camera.aspect=w/h;control.updateCamera(1/60);camera.updateMatrixWorld();
-   for(const vehicle of ['bicycle','motorcycle','ebike','scooter'])for(const hat of ['helmet','cap'])for(const back of [false,true]){
+   for(const {id:vehicle} of RIDER_OPTIONS.vehicle)for(const hat of ['helmet','cap'])for(const back of [false,true]){
     model.applyConfig({...defaultRiderConfig(),vehicle,hat,glasses:'round',clothes:'jersey'});
     for(const time of [0,1,2,3]){
      model.animateRider({dt:1/60,time,moving:true,jumpY:0,duck:false,speed:18,boosting:false});
@@ -206,7 +228,7 @@ test('desktop and landscape wardrobe projects real vehicles left of the right me
  const {createGameCamera}=await import('../src/game-camera.js');
  const {createModelPrimitives}=await import('../src/rider-primitives.js');
  const {createRider}=await import('../src/rider.js');
- const {defaultRiderConfig}=await import('../src/appearance.js');
+ const {defaultRiderConfig,RIDER_OPTIONS}=await import('../src/appearance.js');
  const width=Object.getOwnPropertyDescriptor(globalThis,'innerWidth'),height=Object.getOwnPropertyDescriptor(globalThis,'innerHeight');
  const scene=new T.Scene(),primitives=createModelPrimitives(scene),camera=new T.PerspectiveCamera(45,1,.1,340);
  const game=run();game.mode='home';const app={wardrobeOpen:{value:true}};
@@ -215,12 +237,12 @@ test('desktop and landscape wardrobe projects real vehicles left of the right me
   for(const [w,h] of [[1280,720],[1920,1080],[701,600],[844,390],[667,375],[600,550]]){
    // Match the wardrobe-panel width and overlay right padding in responsive.css.
    const compact=w<=700||h<=500;
-   const menuWidth=compact?w*.47:Math.min(450,w*.43),right=compact?10:Math.max(w*.05,24);
+   const menuWidth=compact?w*.47:Math.min(640,w*.49),right=compact?10:Math.max(w*.05,24);
    const menuLeft=w-right-menuWidth;
    Object.defineProperty(globalThis,'innerWidth',{value:w,configurable:true});
    Object.defineProperty(globalThis,'innerHeight',{value:h,configurable:true});
    camera.aspect=w/h;control.updateCamera(10);camera.updateMatrixWorld();
-   for(const vehicle of ['bicycle','motorcycle','ebike','scooter'])for(const time of [0,1,2,3]){
+   for(const {id:vehicle} of RIDER_OPTIONS.vehicle)for(const time of [0,1,2,3]){
     model.applyConfig({...defaultRiderConfig(),vehicle,hat:'cap',glasses:'round',clothes:'jersey'});
     model.animateRider({dt:1/60,time,moving:true,jumpY:0,duck:false,speed:4,boosting:false});
     model.rider.position.set(-1.1,0,0);model.rider.rotation.set(0,-.28,Math.sin(time*1.1)*.025);scene.updateMatrixWorld(true);

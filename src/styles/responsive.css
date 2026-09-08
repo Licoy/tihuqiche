@@ -49,7 +49,7 @@
   .shield-indicator { top: calc(max(14px, env(safe-area-inset-top)) + 146px); right: max(16px, env(safe-area-inset-right)); font-size: 10px; }
   #controls { display: none; }
   .touch-controls { display: flex; left: max(16px, env(safe-area-inset-left)); right: max(16px, env(safe-area-inset-right)); }
-  #toast { font-size: 12px; top: 35%; width: max-content; max-width: 88vw; }
+  #toast { font-size: 12px; }
   .panel { padding: 25px; border-radius: 20px; }
   .panel h2 { font-size: 29px; }
   .panel p { font-size: 12px; }
@@ -114,7 +114,7 @@
   .panel .help-note { margin: 10px 0; }
   .stats { margin: 12px 0; padding: 10px 0; }
   .stars { font-size: 28px; margin-top: 8px; }
-  #toast { top: 39%; font-size: 11px; padding: 9px 14px; }
+  #toast { font-size: 11px; padding: 7px 12px; }
 }
 @media (max-width: 540px) and (max-height: 700px) and (orientation: portrait) {
   #home { max-height: calc(100dvh - 240px - max(16px, env(safe-area-inset-bottom))); }
@@ -166,7 +166,7 @@ button[aria-pressed='true']:is(.mode-picker button, .wardrobe-tabs button, .ward
 .player-effect { font-size: 10px; margin-top: 5px; color: var(--muted); }
 .boost-control, .item-control { pointer-events: auto; display: flex; width: 100%; flex-direction: column; align-items: stretch; gap: 4px; min-height: 44px; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: var(--ink); padding: 7px; margin-top: 7px; font: inherit; font-size: 11px; text-align: left; }
 .boost-control small { font-size: 9px; }
-.boost-control progress { width: 100%; height: 5px; accent-color: var(--orange); }
+.boost-control[aria-pressed="true"], .touch-controls button[aria-pressed="true"] { border-color: var(--orange); background: color-mix(in srgb, var(--orange) 22%, var(--paper)); }
 .item-control { flex-direction: row; align-items: center; justify-content: space-between; }
 .rider-marker { position: fixed; z-index: 2; transform: translate(-50%, -110%); pointer-events: none; background: var(--paper); color: var(--ink); border: 2px solid var(--orange); border-radius: 6px; padding: 3px 7px; font-size: 12px; font-weight: 800; }
 #controls { max-width: calc(100vw - 32px); white-space: normal; font-size: 10px; }
@@ -276,4 +276,9 @@ button[aria-pressed='true']:is(.mode-picker button, .wardrobe-tabs button, .ward
   .wardrobe-overlay { padding: 10px; }
   .wardrobe-panel { width: 47vw; max-height: calc(100dvh - 20px); padding: 16px; }
   .wardrobe-panel h2 { font-size: 22px; }
+}
+
+@media (max-width: 1000px) {
+  #toast { max-width: calc(100vw - 32px - env(safe-area-inset-left) - env(safe-area-inset-right)); }
+  .has-notice .topbar, .has-notice #hud { translate: 0 calc(var(--notice-height) + 20px); }
 }

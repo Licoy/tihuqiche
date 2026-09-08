@@ -33,6 +33,7 @@ const road=box('#577674',[0,-.22,-120],[10.2,.4,300]);
 const foundation=box('#d8c3a0',[0,-1,-120],[11.1,1.2,300]);
 const sea=box('#60c5b6',[0,-2.15,-105],[650,.2,620]);sea.castShadow=false;
 const sand=box('#e5d6ad',[31,-1.75,-130],[49.5,.6,320]);
+const promenade=box('#a2a59b',[-12.3,-1.9,-120],[12,.9,300]);promenade.name='city-river-promenade';
 const stripes=[],curbs=[],posts=[],waterLines=[];
 for(let i=0;i<68;i++){
  for(const x of [-1.7,1.7])stripes.push({p:[x,.011,18-i*4],s:[.055,.022,1.5]});
@@ -50,7 +51,7 @@ for(let i=0;i<8;i++){
  const g=new T.Group();g.position.set(-85+i*24,21+(i%3)*7,-140-(i%2)*45);cloudGroup.add(g);
  for(let j=0;j<3;j++)orb('#fff5df',[j*3,Math.sin(j*2)*1.2,0],[4.5,1.7+j%2,2],g).castShadow=false;
 }
-const { decor, skyline } = createScenery({ scene, box, orb, rod, mesh });
+const { decor, skyline, life } = createScenery({ scene, box, orb, rod, mesh });
 const islands=new T.Group();scene.add(islands);
 for(let i=0;i<7;i++){
  mesh('ico','#8eb8a2',{p:[-58+i*20,-2,-170-(i%3)*24],s:[16,12+(i%3)*5,14],parent:islands,shadow:false});
@@ -68,12 +69,23 @@ function setTheme(index, dark=darkMode) {
  const level=LEVELS[index], sky=dark?level.night:level.sky;
  scene.background=new T.Color(sky);scene.fog=new T.Fog(sky,55,200);
  sea.material=material(level.sea); road.material=material(level.road);
- sand.material=material(index===3?'#e1bf84':index===4?'#778687':index===5?'#a2a59b':'#e5d6ad');
- seaLines.visible=index!==3; islands.visible=index!==5; skyline.visible=index===5;
+ sand.material=material(level.ground??(index===3?'#e1bf84':index===4?'#778687':index===5?'#a2a59b':'#e5d6ad'));
+ promenade.visible=index>=5;promenade.material=sand.material;
+ seaLines.visible=index!==3; islands.visible=index<5; skyline.visible=index>=5;
+ skyline.userData.themes.forEach((theme,i)=>theme.visible=i===index);
  ambientLight.intensity=dark?1.1:2.3; sunLight.intensity=dark?1.4:3;
  sunLight.color.set(dark?'#b4cced':index===2?'#ffd1a0':'#ffedcd');
  sun.material.color.set(dark?'#dce7ee':'#ffe4a3');sun.scale.setScalar(dark?9:15);sun.position.y=index===2&&!dark?16:42;
  decor.forEach(g=>g.userData.themes.forEach((theme,i)=>theme.visible=i===index));
+ life.setTheme(index);
+}
+function setSettings({ambientLife,shadows}) {
+ if(typeof ambientLife!=='boolean'||typeof shadows!=='boolean')throw new TypeError('Invalid world settings');
+ life.setEnabled(ambientLife);
+ if(renderer.shadowMap.enabled===shadows)return;
+ renderer.shadowMap.enabled=shadows;
+ const materials=new Set(mats.values());scene.traverse(node=>{if(node.material)materials.add(node.material)});
+ materials.forEach(material=>{material.needsUpdate=true});
 }
 function setLanguage(locale) {
  bannerCtx.fillStyle='#fff1cd';bannerCtx.fillRect(0,0,512,80);bannerCtx.fillStyle='#285d50';
@@ -84,6 +96,7 @@ function updateWorld(distance,time){
  seaLines.position.z=(distance*.3)%10;seaLines.position.y=Math.sin(time*.9)*.025;
  decor.forEach((g,i)=>g.position.z=((distance-i*25+275)%275)-248);
  cloudGroup.position.x=Math.sin(time*.03)*3;
+ life.update(time);
 }
 function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)}
 function dispose(){
@@ -93,5 +106,5 @@ function dispose(){
  materials.forEach(m=>{if(m.map)textures.add(m.map);m.dispose()});textures.forEach(t=>t.dispose());
  geometries.forEach(g=>g.dispose());sunLight.shadow.dispose();renderer.dispose();
 }
-return {scene,camera,renderer,mesh,box,orb,rod,material,finish,decor,skyline,setTheme,setLanguage,updateWorld,resize,dispose};
+return {scene,camera,renderer,mesh,box,orb,rod,material,finish,decor,skyline,setTheme,setSettings,setLanguage,updateWorld,resize,dispose};
 }

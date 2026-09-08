@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { faFish, faHeart, faInfinity } from '@fortawesome/free-solid-svg-icons';
 import { computed, inject } from 'vue';
 import { LEVELS } from '../levels.js';
+import { BOOST_FISH_PER_SECOND } from '../rules.js';
 const { state, copy, t, levelName, action } = inject('app');
 const active = computed(() => state.mode !== 'home');
 const endless = computed(() => state.gameMode === 'endless');
@@ -17,7 +18,7 @@ const progress = computed(() => endless.value ? 0 : Math.min(100, state.distance
       <div :id="player.id === 0 ? 'hearts' : 'hearts-p2'" class="hearts" :aria-label="t('hp', { hp: player.hp })"><FontAwesomeIcon v-for="heart in 3" :key="heart" :icon="faHeart" :class="{ 'empty-heart': heart > player.hp }" aria-hidden="true" /></div>
       <div :id="player.id === 0 ? 'speed' : 'speed-p2'" class="speed">{{ Math.round(player.speed * 3.6) }} KM/H · {{ Math.floor(player.distance) }} m</div>
       <div v-if="player.shield" :id="player.id === 0 ? 'shield' : 'shield-p2'" class="player-effect">{{ copy.shield }}</div><div v-if="player.catchupBonus > 0" class="player-effect">{{ copy.catchup }}</div>
-      <button class="boost-control" :data-boost-player="player.id" :disabled="state.mode !== 'playing' || player.status !== 'running' || player.fishBalance < 10 || player.boostRemaining > 0" :title="copy.chargeNote" @click="action({ playerId: player.id, type: 'boost' })"><span>{{ player.boostRemaining > 0 ? copy.boosting : copy.boost }} · {{ player.fishBalance }}</span><progress :value="Math.min(10, player.fishBalance)" max="10" :aria-label="copy.balance"></progress><small>{{ t('charges', { count: Math.floor(player.fishBalance / 10) }) }}</small></button>
+      <button class="boost-control" :data-boost-player="player.id" :disabled="state.mode !== 'playing' || player.status !== 'running' || !player.boosting && player.fishBalance === 0" :title="copy.chargeNote" :aria-pressed="player.boosting" @click="action({ playerId: player.id, type: 'boost' })"><span>{{ player.boosting ? copy.stopBoost : copy.boost }} · {{ player.fishBalance }}</span><small>{{ t('boostFuel', { seconds: Math.max(0, player.fishBalance / BOOST_FISH_PER_SECOND - player.boostElapsed).toFixed(1) }) }}</small></button>
       <button v-if="state.gameMode === 'items'" class="item-control" :disabled="state.mode !== 'playing' || !player.itemSlot || (player.itemSlot === 'shield' && player.shield)" @click="action({ playerId: player.id, type: 'item' })">{{ player.itemSlot ? copy.items[player.itemSlot] : copy.emptySlot }} <kbd>E</kbd></button>
       <div v-if="player.magnetRemaining > 0" class="player-effect">{{ copy.items.magnet }} {{ Math.ceil(player.magnetRemaining) }}s</div><div v-if="player.doubleRemaining > 0" class="player-effect">{{ copy.items.double }} {{ Math.ceil(player.doubleRemaining) }}s</div>
     </section></div>

@@ -6,7 +6,7 @@ export const RIDER_OPTIONS = Object.freeze({
   scarf: options([['none','无','None'],['short','短围巾','Short'],['long','长飘带','Long']]),
   glasses: options([['none','无','None'],['round','圆框眼镜','Round'],['sunglasses','墨镜','Sunglasses']]),
   clothes: options([['none','无','None'],['vest','背心','Vest'],['jersey','骑行上衣','Jersey']]),
-  vehicle: options([['bicycle','自行车','Bicycle'],['motorcycle','摩托车','Motorcycle'],['ebike','电瓶车','E-bike'],['scooter','滑板车','Scooter']]),
+  vehicle: options([['bicycle','自行车','Bicycle'],['motorcycle','摩托车','Motorcycle'],['ebike','电瓶车','E-bike'],['scooter','滑板车','Scooter'],['tricycle','三轮自行车','Tricycle'],['car','小汽车','Car'],['truck','货车','Truck'],['plane','小飞机','Plane']]),
 });
 export const RIDER_COLORS = Object.freeze([
   ['coral','#E9764E','珊瑚橙','Coral'],['green','#338878','海藻绿','Green'],

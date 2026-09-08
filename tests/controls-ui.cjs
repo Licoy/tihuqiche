@@ -16,7 +16,7 @@ async function verifyMobileHeader(page, check, size, locale = 'zh') {
       separate: b.right <= a.left && boxes.every((r, i) => boxes.slice(i + 1).every(next => r.right <= next.left || next.right <= r.left)),
       domain: domain.textContent.trim() === 'tihuqiche.com' && inside(d) && d.left >= b.left && d.right <= b.right && d.top >= b.top && d.bottom <= b.bottom && style.visibility === 'visible' && Number(style.opacity) > 0 && domain.scrollWidth <= domain.clientWidth,
       brandText: inside(n) && n.left >= b.left && n.right <= b.right && n.top >= b.top && n.bottom <= b.bottom && n.right <= a.left && name.scrollWidth <= name.clientWidth && getComputedStyle(name).visibility === 'visible' && Number(getComputedStyle(name).opacity) > 0,
-      compact: controls.length === 4 && boxes.every(r => inside(r) && r.width >= 30 && r.width <= 32 && r.height >= 30 && r.height <= 32),
+      compact: controls.length === (game.mode === 'home' && innerWidth > 370 ? 5 : 4) && boxes.every(r => inside(r) && r.width >= 30 && r.width <= 32 && r.height >= 30 && r.height <= 32),
       actionable: controls.every((el, i) => {
         const r = boxes[i], hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
         return !el.disabled && !!el.getAttribute('aria-label') && (hit === el || el.contains(hit));
@@ -27,7 +27,7 @@ async function verifyMobileHeader(page, check, size, locale = 'zh') {
 }
 
 async function finishTransitions(page) {
-  await page.evaluate(() => document.getAnimations().forEach(animation => animation.finish()));
+  await page.evaluate(() => document.getAnimations().forEach(animation => { if (Number.isFinite(animation.effect.getComputedTiming().endTime)) animation.finish(); }));
 }
 
 async function focusStyle(locator) {
@@ -100,7 +100,58 @@ async function verifyFocusFlow(page, check) {
   check('Escape closes wardrobe and restores opener focus', await page.locator('#wardrobe').isHidden() && await opener.evaluate(el => el === document.activeElement));
 }
 
+async function verifyDesktopRoutes({ browser, target, check, errors }) {
+  const { LEVELS } = await import('../src/levels.js');
+  const { emptySave } = await import('../src/storage.js');
+  const fixture = emptySave(); fixture.records.campaign.unlocked = LEVELS.length;
+  const { context, page } = await openOffline(browser, target, errors, { seedStorage: { 'pelican-pedal-run-v3': JSON.stringify(fixture) } });
+  try {
+    for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 720 }, { width: 1024, height: 768 }, { width: 1920, height: 1080 }]) {
+      await page.setViewportSize(viewport);
+      for (const locale of ['zh', 'en']) {
+        if (await page.locator('html').getAttribute('lang') !== (locale === 'zh' ? 'zh-CN' : 'en')) await page.locator('#language').click();
+        const label = `${viewport.width}x${viewport.height} ${locale}`;
+        await page.locator('#routes').evaluate(el => { el.scrollTop = 0; });
+        await page.locator('.route[data-level="0"]').click();
+        await page.mouse.move(0, 0); await finishTransitions(page);
+        const layout = await page.evaluate(() => {
+          const menu = document.querySelector('#home'), grid = document.querySelector('#routes'), bounds = menu.getBoundingClientRect();
+          const inside = element => {
+            const r = element.getBoundingClientRect();
+            return r.width > 0 && r.height > 0 && r.top >= bounds.top && r.bottom <= bounds.bottom && r.left >= 0 && r.right <= innerWidth;
+          };
+          const gridBounds = grid.getBoundingClientRect(), cards = [...grid.children];
+          return {
+            visible: ['#home h1', '#start', '#help-open'].every(selector => inside(document.querySelector(selector))),
+            stable: menu.scrollTop === 0 && menu.scrollHeight <= menu.clientHeight + 1,
+            allRoutes: cards.length === 12 && cards.every(card => { const r = card.getBoundingClientRect(); return inside(card) && r.top >= gridBounds.top && r.bottom <= gridBounds.bottom; }),
+            noScroll: grid.scrollHeight <= grid.clientHeight + 1 && grid.scrollWidth <= grid.clientWidth + 1,
+            compactWidth: bounds.width <= 901 && bounds.width > Math.min(innerWidth * .55, 800),
+            threeRows: getComputedStyle(grid).gridTemplateColumns.split(' ').length === 4 && new Set(cards.map(card => Math.round(card.offsetTop))).size === 3,
+          };
+        });
+        for (const [name, passed] of Object.entries(layout)) check(`${label} desktop route list ${name}`, passed);
+        const last = page.locator(`.route[data-level="${LEVELS.length - 1}"]`);
+        await last.click();
+        check(`${label} can directly select the final city without scrolling`, await page.evaluate(index =>
+          app.selected.value === index && document.querySelector('#routes').scrollTop === 0 && document.querySelector('#home').scrollTop === 0, LEVELS.length - 1));
+        await page.locator('#wardrobe-open-0').click();
+        await page.locator('#wardrobe .wardrobe-tabs button').nth(6).click();
+        check(`${label} wardrobe shows every vehicle and its actions without scrolling`, await page.locator('.wardrobe-panel').evaluate(panel => {
+          const bounds = panel.getBoundingClientRect();
+          const controls = [...panel.querySelectorAll('.wardrobe-options button, #wardrobe-save, #wardrobe-cancel')];
+          return panel.scrollHeight <= panel.clientHeight + 1 && controls.length === 10 && controls.every(control => {
+            const r = control.getBoundingClientRect(); return r.top >= bounds.top && r.bottom <= bounds.bottom && r.left >= bounds.left && r.right <= bounds.right;
+          });
+        }));
+        await page.locator('#wardrobe-cancel').click();
+      }
+    }
+  } finally { await context.close(); }
+}
+
 async function verifyControlsUi({ browser, target, check, errors }) {
+  await verifyDesktopRoutes({ browser, target, check, errors });
   const { context, page } = await openOffline(browser, target, errors, { viewport: { width: 1440, height: 900 } });
   try {
     await verifyDesktopTheme(page, check);
@@ -116,4 +167,4 @@ async function verifyControlsUi({ browser, target, check, errors }) {
   } finally { await context.close(); }
 }
 
-module.exports = { verifyMobileHeader, verifyControlsUi };
+module.exports = { verifyMobileHeader, verifyControlsUi, verifyDesktopRoutes };

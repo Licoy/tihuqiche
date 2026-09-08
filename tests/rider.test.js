@@ -20,6 +20,14 @@ function geometrySignature(root){
 }
 const frame=overrides=>({dt:1/60,time:1,moving:true,jumpY:0,duck:false,speed:18,boosting:false,...overrides});
 
+test('rider uses the public world primitives without requiring private resource registries',()=>{
+ const world=fixture(),{scene,mesh,box,orb,rod,material}=world;
+ const model=createRider({scene,mesh,box,orb,rod,material});
+ model.shieldBubble.visible=true;model.animateRider(frame({boosting:true}));
+ assert.equal(model.rider.getObjectByName('boost-flame').visible,true);
+ model.dispose();release(world);
+});
+
 test('catalog is frozen, complete, bilingual and validates without mutating input',()=>{
  assert.deepEqual(Object.keys(RIDER_OPTIONS),['identity','skin','hat','scarf','glasses','clothes','vehicle']);
  assert.ok(Object.isFrozen(RIDER_OPTIONS));assert.ok(Object.isFrozen(RIDER_COLORS));
@@ -57,29 +65,35 @@ test('every option produces a different real mesh geometry, placement or materia
  model.dispose();release(world);
 });
 
-test('four vehicle structures and riding poses are distinct, wheels and legs animate',()=>{
+test('eight vehicle structures use their matching pedal, standing or seated riding poses',()=>{
  const world=fixture(),model=createRider(world),poses=new Set();
+ assert.equal(RIDER_OPTIONS.vehicle.length,8);
  for(const vehicle of RIDER_OPTIONS.vehicle){
   model.applyConfig({...defaultRiderConfig(),vehicle:vehicle.id});
   const bike=model.rider.getObjectByName('vehicle:'+vehicle.id);
   assert.ok(bike instanceof T.Group);
-  const characteristic={bicycle:undefined,motorcycle:'fuel-tank',ebike:'battery',scooter:'deck'}[vehicle.id];
-  if(characteristic)assert.ok(bike.getObjectByName(characteristic)?.isMesh);
+  if(vehicle.id==='plane'){
+   const wings=bike.getObjectByName('wings'),shield=model.shieldBubble;
+   const shieldWidth=shield.scale.x*Math.sqrt(1-((wings.position.y-shield.position.y)/shield.scale.y)**2);
+   assert.ok(shieldWidth>wings.scale.x/2,'golden shield encloses the airplane wings');
+  }
+  const characteristic={bicycle:'chainring',motorcycle:'fuel-tank',ebike:'battery',scooter:'deck',tricycle:'rear-axle',car:'chassis',truck:'cargo-bed',plane:'wings'}[vehicle.id];
+  assert.equal(bike.getObjectByName(characteristic)?.type,vehicle.id==='bicycle'?'Group':'Mesh',vehicle.id);
   const foot=model.rider.getObjectByName('foot:1'),before=foot.position.clone();
   model.animateRider(frame({dt:.2}));
   poses.add(foot.position.toArray().join(','));
   assert.notEqual(bike.children[0].rotation.x,0);
-  if(['bicycle','scooter'].includes(vehicle.id))assert.notDeepEqual(foot.position.toArray(),before.toArray());
+  if(['bicycle','tricycle','scooter'].includes(vehicle.id))assert.notDeepEqual(foot.position.toArray(),before.toArray());
   else assert.deepEqual(foot.position.toArray(),before.toArray());
   for(const variant of [{jumpY:1.2},{duck:true},{boosting:true}]){
    model.animateRider(frame(variant));model.rider.updateMatrixWorld(true);
    model.rider.traverse(o=>assert.ok(o.matrixWorld.elements.every(Number.isFinite)));
-   const bounds=new T.Box3().setFromObject(model.rider);
-   assert.ok(bounds.max.y-bounds.min.y<5);assert.ok(bounds.max.z-bounds.min.z<5);
+   const bounds=new T.Box3().setFromObject(model.rider,true);
+   assert.ok(bounds.max.y-bounds.min.y<5);assert.ok(bounds.max.z-bounds.min.z<6.5,'vehicle and rear flame stay within rider camera space');
   }
   assert.equal(model.rider.position.y,0);
  }
- assert.equal(poses.size,4);model.dispose();release(world);
+ assert.equal(poses.size,7,'bicycle and tricycle share their actual pedal positions');model.dispose();release(world);
 });
 
 test('applyConfig keeps root, shield and transforms stable and rejects invalid changes atomically',()=>{
@@ -95,20 +109,97 @@ test('applyConfig keeps root, shield and transforms stable and rejects invalid c
  model.dispose();release(world);
 });
 
-test('player colors and animation are isolated and only exclusive shield resource is disposed',()=>{
+test('layered feathers and expressive eyes retain their shape while blinking without new resources',()=>{
+ const world=fixture(),model=createRider(world),count=nodes(model.rider),materials=world.mats.size;
+ for(const side of [-1,1]){
+  assert.ok(model.rider.getObjectByName('bill-seam:'+side));
+  const wing=model.rider.getObjectByName('wing:'+side);
+  assert.equal(wing.children.filter(child=>child.name.startsWith('flight-feather:')).length,4);
+ }
+ model.animateRider(frame({time:4.68}));
+ for(const side of [-1,1])assert.ok(model.rider.getObjectByName('eye:'+side).scale.y<=.075);
+ model.animateRider(frame({time:4.8}));
+ for(const side of [-1,1])assert.equal(model.rider.getObjectByName('eye:'+side).scale.y,1);
+ assert.equal(nodes(model.rider),count);assert.equal(world.mats.size,materials);
+ model.dispose();release(world);
+});
+
+test('the visible rider heading steers front running gear without moving rear wheels or feet off pedals',()=>{
+ const world=fixture(),model=createRider(world);
+ for(const {id:vehicle} of RIDER_OPTIONS.vehicle){
+  model.applyConfig({...defaultRiderConfig(),vehicle});model.rider.rotation.y=.2;model.animateRider(frame({steering:.2}));
+  const bike=model.rider.getObjectByName('vehicle:'+vehicle);
+  for(const wheel of bike.children.filter(child=>child.name.startsWith('wheel:')))assert.equal(wheel.rotation.y,wheel.position.z<0?.2:0);
+  const handlebar=bike.getObjectByName('handlebar');if(handlebar)assert.equal(handlebar.rotation.y,.2);
+  if(['bicycle','tricycle'].includes(vehicle)){
+   model.rider.updateMatrixWorld(true);
+   for(let i=0;i<2;i++){
+    const sole=new T.Vector3(0,-.5,0).applyMatrix4(bike.getObjectByName('foot:'+i).matrixWorld);
+    const surface=new T.Vector3(0,.03,0).applyMatrix4(bike.getObjectByName('pedal:'+i).matrixWorld);
+    assert.ok(sole.distanceTo(surface)<1e-10);
+   }
+  }
+ }
+ model.dispose();release(world);
+});
+
+test('shield is a filled golden dome with three animated rings and pulsing sparkles',()=>{
+ const world=fixture(),model=createRider(world),shield=model.shieldBubble;
+ assert.ok(shield.isMesh);assert.equal(shield.visible,false);assert.equal(shield.material.wireframe,false);
+ assert.ok(shield.material.color.r>shield.material.color.b*2);
+ assert.ok(shield.material.transparent);assert.equal(shield.material.depthWrite,false);
+ const rings=shield.children.filter(o=>o.name.startsWith('shield-ring:'));
+ const sparks=shield.children.filter(o=>o.name.startsWith('shield-spark:'));
+ assert.equal(rings.length,3);assert.equal(sparks.length,8);
+ const count=nodes(model.rider),scale=shield.scale.toArray();shield.visible=true;
+ model.animateRider(frame({time:1}));const before=geometrySignature(shield),opacity=shield.material.opacity;
+ model.animateRider(frame({time:1.1}));
+ assert.notEqual(geometrySignature(shield),before);assert.notEqual(shield.material.opacity,opacity);
+ assert.deepEqual(shield.scale.toArray(),scale);assert.equal(nodes(model.rider),count);
+ assert.ok(sparks.every(s=>s.position.length()>.99&&s.position.length()<1.01));
+ model.dispose();release(world);
+});
+
+test('boost flame follows each vehicle rear, flickers without allocating nodes and stops immediately',()=>{
+ const world=fixture(),model=createRider(world),flame=model.rider.getObjectByName('boost-flame');
+ assert.equal(flame.visible,false);
+ for(const {id:vehicle} of RIDER_OPTIONS.vehicle){
+  model.applyConfig({...defaultRiderConfig(),vehicle});
+  const bike=model.rider.getObjectByName('vehicle:'+vehicle),count=nodes(model.rider),materials=world.mats.size;
+  assert.equal(model.rider.getObjectByName('boost-flame'),flame);assert.equal(flame.parent,bike);
+  assert.ok(flame.position.z>=1.3,'flame starts behind the vehicle');
+  model.animateRider(frame({boosting:true,time:2}));assert.equal(flame.visible,true);
+  const before=geometrySignature(flame);
+  model.animateRider(frame({boosting:true,time:2.15}));assert.notEqual(geometrySignature(flame),before);
+  flame.updateMatrixWorld(true);
+  for(const name of ['flame-outer','flame-core','flame-hotspot']){
+   const cone=flame.getObjectByName(name);
+   assert.ok(new T.Vector3(0,.5,0).applyMatrix4(cone.matrix).z>0,'fire tips point toward the rear');
+  }
+  assert.equal(nodes(model.rider),count);assert.equal(world.mats.size,materials);
+  model.animateRider(frame({boosting:false}));assert.equal(flame.visible,false);
+  model.animateRider(frame({boosting:true,moving:false}));assert.equal(flame.visible,false);
+ }
+ model.dispose();release(world);
+});
+
+test('player colors and effects are isolated and all exclusive materials are disposed exactly once',()=>{
  const world=fixture(),first=createRider(world),second=createRider(world,defaultRiderConfig(1));
  const scenery=world.box('#E9764E',[8,0,0],[1,1,1]);
  const originalColor=scenery.material.color.getHex(),secondSignature=geometrySignature(second.rider);
- let shieldDisposed=0,sharedDisposed=0;
- first.shieldBubble.material.addEventListener('dispose',()=>shieldDisposed++);
+ let sharedDisposed=0;
+ const exclusive=new Map(),shared=new Set(world.mats.values());
+ first.rider.traverse(obj=>{if(obj.isMesh&&!shared.has(obj.material))exclusive.set(obj.material,0)});
+ assert.equal(exclusive.size,7,'three shield and four fire materials belong to each rider');
+ for(const mat of exclusive.keys())mat.addEventListener('dispose',()=>exclusive.set(mat,exclusive.get(mat)+1));
  for(const g of Object.values(world.geos))g.addEventListener('dispose',()=>sharedDisposed++);
  for(const m of world.mats.values())m.addEventListener('dispose',()=>sharedDisposed++);
  first.applyConfig({...defaultRiderConfig(),hatColor:'green',vehicleColor:'green'});
- first.animateRider(frame({dt:.3}));
+ first.shieldBubble.visible=true;first.animateRider(frame({dt:.3,boosting:true}));
  assert.equal(scenery.material.color.getHex(),originalColor);
  assert.equal(geometrySignature(second.rider),secondSignature);
  first.dispose();first.dispose();
- assert.equal(shieldDisposed,1);assert.equal(sharedDisposed,0);assert.equal(first.rider.parent,null);
+ assert.deepEqual([...exclusive.values()],Array(7).fill(1));assert.equal(sharedDisposed,0);assert.equal(first.rider.parent,null);
  assert.equal(first.rider.children.length,0);assert.equal(second.rider.parent,world.scene);
  assert.throws(()=>first.applyConfig(defaultRiderConfig()));assert.throws(()=>first.animateRider(frame()));
  second.dispose();release(world);
@@ -123,13 +214,16 @@ test('100 full wardrobe passes keep real scene nodes and shared resource counts 
  const expected=new Map();
  for(const config of configs){model.applyConfig(config);expected.set(JSON.stringify(config),nodes(world.scene));}
  const materials=world.mats.size,geometries=Object.keys(world.geos).length;
+ const exclusive=new Set();
+ model.rider.traverse(o=>{if(o.isMesh&&![...world.mats.values()].includes(o.material))exclusive.add(o.material)});
+ assert.equal(exclusive.size,7);
  for(let pass=0;pass<100;pass++)for(const config of configs){
   model.applyConfig(config);model.animateRider(frame());
   assert.equal(nodes(world.scene),expected.get(JSON.stringify(config)));
   assert.equal(world.mats.size,materials);assert.equal(Object.keys(world.geos).length,geometries);
   model.rider.traverse(o=>{if(o.isMesh){
    assert.ok(Object.values(world.geos).includes(o.geometry));
-   assert.ok(o===model.shieldBubble || [...world.mats.values()].includes(o.material));
+   assert.ok(exclusive.has(o.material) || [...world.mats.values()].includes(o.material));
   }});
  }
  model.dispose();assert.equal(nodes(world.scene),1);release(world);
@@ -140,9 +234,14 @@ test('wheel spokes stay inside tires and animated legs reach the actual feet',()
  for(const {id:vehicle} of RIDER_OPTIONS.vehicle){
   model.applyConfig({...defaultRiderConfig(),vehicle});
   const bike=model.rider.getObjectByName('vehicle:'+vehicle);
-  for(const wheel of bike.children.slice(0,2)){
+  const wheels=bike.children.filter(child=>child.name.startsWith('wheel:'));
+  assert.equal(wheels.length,{tricycle:3,car:4,truck:4,plane:3}[vehicle]??2,vehicle);
+  for(const wheel of wheels){
    const tire=wheel.children[0],radius=tire.scale.y;
-   for(const spoke of wheel.children.slice(2,10)){
+   const spokes=wheel.children.filter(child=>child.name.startsWith('spoke:'));
+   assert.equal(spokes.length,['car','truck'].includes(vehicle)?0:['bicycle','tricycle'].includes(vehicle)?8:vehicle==='plane'?3:5);
+   assert.equal(wheel.children.filter(child=>child.name.startsWith('hub:')).length,2,'every wheel has supported hubs');
+   for(const spoke of spokes){
     const endpoint=new T.Vector3(0,.5,0).applyMatrix4((spoke.updateMatrix(),spoke.matrix));
     assert.ok(Math.hypot(endpoint.y,endpoint.z)<=radius,'spoke fits inside tire');
    }

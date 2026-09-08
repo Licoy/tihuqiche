@@ -2,10 +2,10 @@
 import { inject } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { faGithub } from '@fortawesome/free-brands-svg-icons';
-import { faVolumeHigh, faVolumeXmark, faSun, faMoon, faDesktop, faPause } from '@fortawesome/free-solid-svg-icons';
+import { faVolumeHigh, faVolumeXmark, faSun, faMoon, faDesktop, faPause, faGear } from '@fortawesome/free-solid-svg-icons';
 import logo from '../assets/pelican-mark.png';
 
-const { state, copy, theme, locale, soundEnabled, setTheme, setLocale, toggleSound, pauseGame } = inject('app');
+const { state, copy, theme, locale, soundEnabled, setTheme, setLocale, toggleSound, pauseGame, openSettings } = inject('app');
 const themeIcons = { system: faDesktop, light: faSun, dark: faMoon };
 </script>
 
@@ -19,6 +19,7 @@ const themeIcons = { system: faDesktop, light: faSun, dark: faMoon };
       <a id="github" class="small-btn github-link" :hidden="state.mode !== 'home'" href="https://github.com/Licoy/tihuqiche" target="_blank" rel="noopener noreferrer" :aria-label="copy.github" :title="copy.github">
         <FontAwesomeIcon :icon="faGithub" /><span>GitHub</span>
       </a>
+      <button id="settings-open" class="small-btn icon-btn" :hidden="state.mode !== 'home'" :aria-label="copy.settings" :title="copy.settings" @click="openSettings"><FontAwesomeIcon :icon="faGear" /></button>
       <button id="sound" class="small-btn icon-btn" :aria-pressed="soundEnabled" :aria-label="soundEnabled ? copy.soundOn : copy.soundOff" :title="soundEnabled ? copy.soundOn : copy.soundOff" @click="toggleSound">
         <FontAwesomeIcon :icon="soundEnabled ? faVolumeHigh : faVolumeXmark" />
       </button>

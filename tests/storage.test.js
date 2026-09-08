@@ -1,6 +1,7 @@
 import test, { beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { emptySave, parseSave, readSave, writeSave, updateProgress, emptyAppearance, readAppearance, writeAppearance } from '../src/storage.js';
+import { LEVELS } from '../src/levels.js';
 
 const key = 'pelican-pedal-run-v3';
 const appearanceKey = 'pelican-pedal-appearance-v1';
@@ -41,8 +42,9 @@ test('v1 and v2 migrate only campaign, do not write on read, preserve old keys',
     data.set(legacyKey, raw);
     const loaded = readSave(notify);
     assert.equal(loaded.error, null);
-    assert.equal(loaded.save.records.campaign.unlocked, version === 1 ? 4 : 6);
-    assert.deepEqual(loaded.save.records.campaign.best, version === 1 ? [123,123,123,0,0,0] : Array(6).fill(123));
+    const count = version === 1 ? 3 : 6;
+    assert.equal(loaded.save.records.campaign.unlocked, count + 1);
+    assert.deepEqual(loaded.save.records.campaign.best, [...Array(count).fill(123), ...Array(LEVELS.length - count).fill(0)]);
     assert.deepEqual(loaded.save.records.duo, emptySave().records.duo);
     assert.equal(data.has(key), false);
     assert.deepEqual(readSave(notify), loaded);
@@ -55,6 +57,47 @@ test('v1 and v2 migrate only campaign, do not write on read, preserve old keys',
 test('v1 unfinished third level does not unlock fourth', () => {
   const value = old(3); value.stars[2] = 0;
   assert.equal(parseSave(JSON.stringify(value), 1).records.campaign.unlocked, 3);
+});
+
+test('six-level v3 saves expand every mode without changing historical scores or source data', () => {
+  const legacy = { version: 3, records: { campaign: old(6), duo: old(6), items: old(6), endless: { bestScore: 4321 } } };
+  legacy.records.duo.unlocked = 3;
+  legacy.records.duo.stars = [3, 2, 0, 0, 0, 0];
+  legacy.records.items.stars[5] = 0;
+  const raw = JSON.stringify(legacy);
+  data.set(key, raw);
+  const loaded = readSave(notify);
+  assert.equal(loaded.error, null);
+  assert.equal(loaded.save.records.campaign.unlocked, 7);
+  assert.equal(loaded.save.records.duo.unlocked, 3);
+  assert.equal(loaded.save.records.items.unlocked, 6);
+  assert.deepEqual(loaded.save.records.endless, legacy.records.endless);
+  for (const mode of ['campaign', 'duo', 'items']) {
+    assert.deepEqual(loaded.save.records[mode].best.slice(0, 6), legacy.records[mode].best);
+    assert.deepEqual(loaded.save.records[mode].stars.slice(0, 6), legacy.records[mode].stars);
+    assert.deepEqual(loaded.save.records[mode].best.slice(6), Array(6).fill(0));
+    assert.deepEqual(loaded.save.records[mode].stars.slice(6), Array(6).fill(0));
+  }
+  assert.equal(data.get(key), raw);
+  assert.deepEqual(notices, []);
+  assert.equal(writeSave(loaded.save, notify), true);
+  assert.deepEqual(readSave(notify), loaded);
+  const next = updateProgress(loaded.save, result({ levelIndex: 6 }));
+  assert.equal(next.records.campaign.unlocked, 8);
+  assert.equal(next.records.campaign.best[6], 800);
+  assert.equal(loaded.save.records.campaign.best[6], 0);
+});
+
+test('legacy save lengths stay explicit and mixed v3 record lengths are rejected', () => {
+  for (const count of [3, 5, 7, 11, 13]) {
+    const records = { campaign: old(count), duo: old(count), items: old(count), endless: { bestScore: 0 } };
+    assert.throws(() => parseSave(JSON.stringify({ version: 3, records })), /Invalid/);
+  }
+  const mixed = emptySave(); mixed.records.duo = old(6);
+  assert.throws(() => parseSave(JSON.stringify(mixed)), /Invalid/);
+  assert.throws(() => parseSave(JSON.stringify(old(12)), 2), /Invalid/);
+  const incomplete = old(6); incomplete.stars[5] = 0;
+  assert.equal(parseSave(JSON.stringify(incomplete), 2).records.campaign.unlocked, 6);
 });
 
 test('v3 takes precedence and corrupt newest existing key cannot fall back or change data', () => {
@@ -118,10 +161,10 @@ test('updateProgress returns an independent save and preserves all input data', 
 test('each mode records independently, final level is capped, endless never unlocks', () => {
   let save = emptySave();
   for (const gameMode of ['campaign', 'duo', 'items']) {
-    for (let levelIndex = 0; levelIndex < 6; levelIndex++) {
+    for (let levelIndex = 0; levelIndex < LEVELS.length; levelIndex++) {
       save = updateProgress(save, result({ gameMode, levelIndex }));
     }
-    assert.equal(save.records[gameMode].unlocked, 6);
+    assert.equal(save.records[gameMode].unlocked, LEVELS.length);
   }
   const before = structuredClone(save);
   save = updateProgress(save, result({ gameMode: 'endless', levelIndex: null, stars: null, outcome: 'ended', score: 999 }));
@@ -132,7 +175,7 @@ test('each mode records independently, final level is capped, endless never unlo
 
 test('invalid or locked results throw rather than mutate progress', () => {
   const save = emptySave();
-  const cases = [{ gameMode: 'other' }, { score: -1 }, { score: 1.2 }, { levelIndex: 6 },
+  const cases = [{ gameMode: 'other' }, { score: -1 }, { score: 1.2 }, { levelIndex: LEVELS.length },
     { levelIndex: 1 }, { stars: 4 }, { stars: 0 }, { outcome: 'lost', stars: 1 },
     { outcome: 'ended' }, { gameMode: 'endless', levelIndex: null, stars: null },
     { gameMode: 'endless', levelIndex: 0, stars: null, outcome: 'lost' }];
@@ -167,7 +210,7 @@ test('invalid or unavailable appearance writes return false without touching the
 
 
 test('sparse arrays cannot serialize as corrupt null-filled progress or appearance data', () => {
-  const save = emptySave(); save.records.duo.best = new Array(6);
+  const save = emptySave(); save.records.duo.best = new Array(LEVELS.length);
   assert.equal(writeSave(save, notify), false);
   assert.equal(data.has(key), false);
   assert.equal(writeAppearance({ version: 1, players: new Array(2) }, notify), false);

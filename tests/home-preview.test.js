@@ -132,14 +132,15 @@ async function engineFixture(){
  const calls=[],scheduled=new Map();let nextId=0,copy=true,failure=null;
  const ref=value=>({value});
  const app={save:{},notify(){},appearance:{players:[defaultRiderConfig(),defaultRiderConfig(1)]},
+  settings:{soundEnabled:false,soundStyle:'classic',volume:.65,assistMarkers:true,speedLines:true,ambientLife:true,shadows:true},settingsOpen:ref(false),
   soundEnabled:ref(false),dark:ref(false),selected:ref(0),locale:ref('zh'),state:{},error:ref(null),ready:ref(true),
   wardrobeOpen:ref(false),wardrobeScene:ref(false),wardrobeAuto:ref(true),wardrobeDraft:ref(defaultRiderConfig())};
  const renderer={render(){calls.push('world');if(failure==='world')throw new Error('world failed')}};
- const world={renderer,scene:{},camera:{},finish:{},setTheme(){},setLanguage(){},updateWorld(){},dispose(){calls.push('dispose-world')}};
+ const world={renderer,scene:{},camera:{},finish:{},setTheme(){},setLanguage(){},setSettings(){},updateWorld(){},dispose(){calls.push('dispose-world')}};
  const preview={attach(){},render(){calls.push('preview');if(failure==='preview')throw new Error('preview failed');return copy},dispose(){calls.push('dispose-preview')}};
  const dependencies={T,nextTick(){},initialGameState,createWorld:()=>world,
   createRider:()=>({rider:new T.Object3D(),shieldBubble:{},animateRider(){},dispose(){}}),
-  createCourse:()=>({updateParticles(){},dispose(){}}),createHomePreview:()=>preview,
+  createCourse:()=>({setAssistMarkers(){},updateParticles(){},dispose(){}}),createHomePreview:()=>preview,
   createSound:()=>({tone(){},dispose(){}}),createGameCamera:()=>({updateCamera(){},markers:()=>[]}),
   bindInput:()=>()=>calls.push('unbind'),V:()=>{},performance:{now:()=>0},innerWidth:1280,innerHeight:720,
   requestAnimationFrame:callback=>{scheduled.set(++nextId,callback);return nextId},

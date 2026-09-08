@@ -6,6 +6,7 @@ const { pathToFileURL } = require('node:url');
 const target=pathToFileURL(path.resolve(__dirname,'../dist/offline.html')).href;
 const { installTestClock, waitForGame, rideToFinish, verifyFeatures } = require('./features.cjs');
 const { verifyUpgrades } = require('./upgrades.cjs');
+const { verifySettingsUi } = require('./settings-ui.cjs');
 const { verifyMobileHeader, verifyControlsUi } = require('./controls-ui.cjs');
 const report=[];
 const artifacts=path.resolve(__dirname,'../test-results');
@@ -14,10 +15,12 @@ function check(name,actual,expected=true){assert.deepEqual(actual,expected,name)
 async function renderView(page){
  // The suite holds requestAnimationFrame, so poll resize completion independently.
  await page.waitForFunction(()=>camera.aspect===innerWidth/innerHeight,null,{polling:50});
- await page.evaluate(()=>{testFrame(performance.now());updateCamera(10);document.getAnimations().forEach(animation=>animation.finish());renderer.render(scene,camera)});
+ await page.evaluate(()=>{testFrame(performance.now());updateCamera(10);document.getAnimations().forEach(animation=>{if(Number.isFinite(animation.effect.getComputedTiming().endTime))animation.finish()});renderer.render(scene,camera)});
 }
 (async()=>{
  const { messages } = await import(pathToFileURL(path.resolve(__dirname,'../src/locales.js')).href);
+ const { LEVELS } = await import(pathToFileURL(path.resolve(__dirname,'../src/levels.js')).href);
+ const levelCount=LEVELS.length;
  const zh=messages.zh;
  const browser=await chromium.launch({headless:true,...(process.env.PLAYWRIGHT_CHANNEL?{channel:process.env.PLAYWRIGHT_CHANNEL}:{})});
  try{
@@ -36,19 +39,19 @@ async function renderView(page){
   check('GitHub keyboard activation does not start the game',await page.evaluate(()=>{const event=new KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true});$('github').dispatchEvent(event);return !event.defaultPrevented&&game.mode==='home'}));
   check('sound defaults on before interaction',await page.evaluate(()=>soundEnabled&&audio===null&&$('sound').getAttribute('aria-pressed')==='true'&&$('sound').getAttribute('aria-label')==='音效：开'));
   await renderView(page);await page.screenshot({path:path.join(artifacts,'home-desktop.png')});
-  check('later stages initially locked',await page.locator('.route:disabled').count(),5);
+  check('later stages initially locked',await page.locator('.route:disabled').count(),levelCount-1);
   await page.getByRole('button',{name:'第一次骑？看这里'}).click();check('help opens',await page.locator('#help').isVisible());
   check('Chinese help translates every instruction',await page.locator('#help').textContent().then(text=>[zh.helpTitle,zh.helpNote,...zh.helpRows.flat()].every(value=>text.includes(value))));
   await page.keyboard.press('Escape');check('help closes with Escape',await page.locator('#help').isHidden());
   await page.getByRole('button',{name:'出发，去兜风'}).click();
   await page.waitForFunction(()=>audio?.state==='running',null,{polling:50});check('start click activates real audio',await page.evaluate(()=>audio.state),'running');
   check('GitHub entry is hidden during a run',await page.locator('#github').isHidden());
-  check('Chinese HUD includes six-stage count and health label',await page.evaluate(()=>$('level-name').textContent.includes('珊瑚海岸')&&$('stage-count').textContent==='1 / 6'&&$('hearts').getAttribute('aria-label')==='剩余 3 点体力'));
+  check('Chinese HUD includes the full stage count and health label',await page.evaluate(count=>$('level-name').textContent.includes('珊瑚海岸')&&$('stage-count').textContent===`1 / ${count}`&&$('hearts').getAttribute('aria-label')==='剩余 3 点体力',levelCount));
   await page.locator('#language').click();
   await page.keyboard.press('ArrowLeft');
   check('focused language button still allows gameplay direction keys',await page.evaluate(()=>({lane:game.players[0].lane,activeElement:document.activeElement.id})),{lane:0,activeElement:'language'});
   await page.keyboard.press('Space');
-  check('focused language button retains native Space activation without boosting',await page.evaluate(()=>app.locale.value==='zh'&&game.players[0].boostRemaining===0&&document.activeElement.id==='language'));
+  check('focused language button retains native Space activation without boosting',await page.evaluate(()=>app.locale.value==='zh'&&!game.players[0].boosting&&document.activeElement.id==='language'));
   await page.keyboard.press('ArrowRight');
   await page.locator('#sound').click();check('sound can be muted',await page.evaluate(()=>!soundEnabled&&$('sound').getAttribute('aria-pressed')==='false'));
   await page.locator('#pause').click();await page.locator('#restart').click();check('restart respects muted sound',await page.evaluate(()=>!soundEnabled));
@@ -75,18 +78,18 @@ async function renderView(page){
   check('Chinese defeat dialog is fully translated',await page.locator('#result').textContent().then(text=>[zh.modes.campaign,zh.lostTitle,zh.lostDesc,zh.retry,zh.home,zh.rideStat,zh.fishStat,zh.totalScore].every(value=>text.includes(value))));
   await page.getByRole('button',{name:'再骑一次'}).click();check('retry resets this level',await page.evaluate(()=>game.mode==='playing'&&game.distance===0&&game.players[0].hp===3&&game.players[0].fishCollected===0&&game.players[0].fishBalance===0));
   const stages=[];
-  for(let level=0;level<6;level++){
+  for(let level=0;level<levelCount;level++){
    const result=await rideToFinish(page);
    check('stage '+(level+1)+' reaches finish with real physics',result.mode,'won');
    check('stage '+(level+1)+' has a collision-free route',result.hp,3);
    check('stage '+(level+1)+' grants three stars',result.stars,3);check('stage '+(level+1)+' persists its result stars',result.recordStars,3);stages.push(result);
-   check('stage '+(level+1)+' unlocks only the next route',result.unlocked,Math.min(6,level+2));
-   check('Chinese stage '+(level+1)+' victory dialog is localized',await page.locator('#result').textContent().then(text=>[level===5?zh.allTitle:zh.wonTitle,zh.modes.campaign,level===5?zh.again:zh.next,zh.home].every(value=>text.includes(value))));
-   if(level<5){await page.getByRole('button',{name:'下一站，继续冒险'}).click();check('next-stage button starts correct stage',await page.evaluate(()=>game.level),level+1)}
+   check('stage '+(level+1)+' unlocks only the next route',result.unlocked,Math.min(levelCount,level+2));
+   check('Chinese stage '+(level+1)+' victory dialog is localized',await page.locator('#result').textContent().then(text=>[level===levelCount-1?zh.allTitle:zh.wonTitle,zh.modes.campaign,level===levelCount-1?zh.again:zh.next,zh.home].every(value=>text.includes(value))));
+   if(level<levelCount-1){await page.getByRole('button',{name:'下一站，继续冒险'}).click();check('next-stage button starts correct stage',await page.evaluate(()=>game.level),level+1)}
   }
   await page.evaluate(()=>{updateWorld(game.distance,20);updateEntities(20);updateCamera(20);renderer.render(scene,camera)});
   await page.screenshot({path:path.join(artifacts,'victory.png')});
-  await page.reload();await waitForGame(page);check('completed stages persist after reload',await page.evaluate(()=>save.records.campaign.unlocked===6&&save.records.campaign.stars.length===6&&save.records.campaign.best.length===6&&save.records.campaign.stars.every(n=>n===3)&&save.records.campaign.best.every(n=>n>0)));
+  await page.reload();await waitForGame(page);check('completed stages persist after reload',await page.evaluate(count=>save.records.campaign.unlocked===count&&save.records.campaign.stars.length===count&&save.records.campaign.best.length===count&&save.records.campaign.stars.every(n=>n===3)&&save.records.campaign.best.every(n=>n>0),levelCount));
   check('unlocked route buttons persist',await page.locator('.route:disabled').count(),0);
   check('no JavaScript page errors',errors,[]);
   const mobile=await browser.newContext({...devices['iPhone 13'],viewport:{width:390,height:844},isMobile:true,hasTouch:true,locale:'zh-CN',colorScheme:'light'});await mobile.setOffline(true);
@@ -133,6 +136,7 @@ async function renderView(page){
   await verifyFeatures({browser,target,check,errors});
   await verifyUpgrades({browser,target,check,errors,artifacts});
   await verifyControlsUi({browser,target,check,errors});
+  await verifySettingsUi({browser,target,check,errors});
   check('all feature checks introduce no JavaScript errors',errors,[]);
   fs.writeFileSync(path.join(artifacts,'verification.json'),JSON.stringify({checks:report,stages,mobileBounds,requests,errors},null,2));
   console.log(report.join('\n'));console.log('STAGES',JSON.stringify(stages));console.log(report.length+' checks passed');

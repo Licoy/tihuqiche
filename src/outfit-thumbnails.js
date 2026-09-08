@@ -21,6 +21,10 @@ import image18 from './assets/outfits/vehicle-bicycle.png';
 import image19 from './assets/outfits/vehicle-motorcycle.png';
 import image20 from './assets/outfits/vehicle-ebike.png';
 import image21 from './assets/outfits/vehicle-scooter.png';
+import image22 from './assets/outfits/vehicle-tricycle.png';
+import image23 from './assets/outfits/vehicle-car.png';
+import image24 from './assets/outfits/vehicle-truck.png';
+import image25 from './assets/outfits/vehicle-plane.png';
 
 const options = {
   identity: {"gg": image0, "mm": image1},
@@ -29,7 +33,7 @@ const options = {
   scarf: {"none": image9, "short": image10, "long": image11},
   glasses: {"none": image12, "round": image13, "sunglasses": image14},
   clothes: {"none": image15, "vest": image16, "jersey": image17},
-  vehicle: {"bicycle": image18, "motorcycle": image19, "ebike": image20, "scooter": image21},
+  vehicle: {"bicycle": image18, "motorcycle": image19, "ebike": image20, "scooter": image21, "tricycle": image22, "car": image23, "truck": image24, "plane": image25},
 };
 export const OUTFIT_THUMBNAILS = {category: {
   identity: options.identity.gg,

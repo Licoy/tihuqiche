@@ -121,9 +121,22 @@ async function verifyMobile(options) {
     const charged = await rideToFinish(page, { fishTarget: 10 });
     check('mobile can collect boost charge through normal riding', charged.mode, 'playing');
     await page.evaluate(() => { pauseGame(); resumeGame(); });
-    const balance = await page.evaluate(() => game.players[0].fishBalance);
-    await page.locator('#touch [data-action="boost"]').tap();
-    check('mobile boost control activates real boost and spends fish', await page.evaluate(() => [game.players[0].boostRemaining, game.players[0].fishBalance]), [2.5, balance - 10]);
+    const fuel = await page.evaluate(() => ({ balance: game.players[0].fishBalance, collected: game.players[0].fishCollected }));
+    const boostButton = page.locator('#touch [data-action="boost"]');
+    await boostButton.tap();
+    check('mobile boost starts without charging fish before time advances', await page.evaluate(() => [game.players[0].boosting, game.players[0].fishBalance]), [true, fuel.balance]);
+    check('active mobile boost exposes its stop action', [await boostButton.getAttribute('aria-pressed'), await boostButton.innerText()], ['true', '停止冲刺']);
+    for (let spent = 1; spent <= 2; spent++) {
+      const advanced = await rideToFinish(page, { seconds: .25 });
+      check(`mobile boost spends fish ${spent} after ${spent / 4} seconds of real physics`,
+        [advanced.players[0].boosting, advanced.players[0].fishBalance - (advanced.players[0].fishCollected - fuel.collected)], [true, fuel.balance - spent]);
+    }
+    await boostButton.tap();
+    const stopped = await page.evaluate(() => ({ boosting: game.players[0].boosting, balance: game.players[0].fishBalance, collected: game.players[0].fishCollected }));
+    check('mobile stop button ends boost and resets its pressed state', [stopped.boosting, await boostButton.getAttribute('aria-pressed')], [false, 'false']);
+    const coasted = await rideToFinish(page, { seconds: .25 });
+    check('stopped mobile boost preserves fish while normal pickups continue', coasted.players[0].fishBalance - (coasted.players[0].fishCollected - stopped.collected), stopped.balance);
+    await boostButton.tap();
     check('all six item-mode touch controls retain 44px targets inside viewport', await page.locator('#touch [data-action]').evaluateAll(buttons => buttons.length === 6 && buttons.every(button => {
       const r = button.getBoundingClientRect(); return r.width >= 44 && r.height >= 44 && r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight;
     })));

@@ -3,6 +3,7 @@ import { defaultRiderConfig, validateRiderConfig } from './appearance.js';
 
 const SAVE_KEY = 'pelican-pedal-run-v3';
 const APPEARANCE_KEY = 'pelican-pedal-appearance-v1';
+const LEGACY_LEVEL_COUNT = 6;
 const campaignRecord = () => ({ unlocked: 1, best: LEVELS.map(() => 0), stars: LEVELS.map(() => 0) });
 const natural = value => Number.isSafeInteger(value) && value >= 0;
 export const emptySave = () => ({ version: 3, records: {
@@ -23,22 +24,32 @@ function validateSave(value) {
   if (value?.version !== 3 || !natural(value.records?.endless?.bestScore)) {
     throw new Error('Invalid cycling v3 save');
   }
+  const count = value.records.campaign?.best?.length;
+  if (count !== LEGACY_LEVEL_COUNT && count !== LEVELS.length) throw new Error('Invalid cycling v3 level count');
   return { version: 3, records: {
-    campaign: validateRecord(value.records.campaign), duo: validateRecord(value.records.duo),
-    items: validateRecord(value.records.items), endless: { bestScore: value.records.endless.bestScore },
+    campaign: expandRecord(value.records.campaign, count), duo: expandRecord(value.records.duo, count),
+    items: expandRecord(value.records.items, count), endless: { bestScore: value.records.endless.bestScore },
   } };
+}
+
+function expandRecord(value, count) {
+  const record = validateRecord(value, count);
+  if (count === LEVELS.length) return record;
+  // Historical saves describe only their original levels; append new progress explicitly.
+  const padding = Array(LEVELS.length - count).fill(0);
+  return {
+    unlocked: record.unlocked === count && record.stars[count - 1] > 0 ? count + 1 : record.unlocked,
+    best: [...record.best, ...padding], stars: [...record.stars, ...padding],
+  };
 }
 
 export function parseSave(raw, version = 3) {
   const value = JSON.parse(raw);
   if (version === 3) return validateSave(value);
   if (version !== 1 && version !== 2) throw new Error('Unsupported cycling save version');
-  const count = version === 1 ? 3 : LEVELS.length;
-  const old = validateRecord(value, count);
+  const count = version === 1 ? 3 : LEGACY_LEVEL_COUNT;
   const save = emptySave();
-  save.records.campaign.best.splice(0, count, ...old.best);
-  save.records.campaign.stars.splice(0, count, ...old.stars);
-  save.records.campaign.unlocked = version === 1 && old.stars[2] > 0 ? 4 : old.unlocked;
+  save.records.campaign = expandRecord(value, count);
   return save;
 }
 

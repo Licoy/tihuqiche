@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const http = require('node:http');
 const { pathToFileURL } = require('node:url');
+const levelData = import(pathToFileURL(path.resolve(__dirname, '../src/levels.js')).href);
 
 async function installTestClock(context) {
   await context.addInitScript(() => {
@@ -28,7 +29,7 @@ async function rideToFinish(page, options = {}) {
     for (; ticks < seconds * 120 && game.mode === 'playing'; ticks++) {
       if (game.players[0].fishCollected >= fishTarget) break;
       for (const player of game.players.filter(p => p.status === 'running')) {
-        if (player.id === boostSeat) action({ playerId: player.id, type: 'boost' });
+        if (player.id === boostSeat && !player.boosting && player.fishBalance > 0) action({ playerId: player.id, type: 'boost' });
         if (useItems) action({ playerId: player.id, type: 'item' });
         const obstacles = entities.filter(e => ['hurdle', 'gate', 'crate'].includes(e.type));
         const ahead = obstacles.filter(e => e.at > player.distance - 2).sort((a, b) => a.at - b.at)[0];
@@ -66,13 +67,15 @@ async function openOffline(browser, target, errors, options = {}, legacy) {
 }
 
 async function verifyMigration({ browser, target, errors, check }) {
+  const { LEVELS } = await levelData;
   for (const finished of [false, true]) {
     const old = { unlocked: 3, best: [1800, 2400, finished ? 3200 : 0], stars: [3, 2, finished ? 3 : 0] };
     const { context, page } = await openOffline(browser, target, errors, {}, old);
     try {
-      const expected = { unlocked: finished ? 4 : 3, best: [...old.best, 0, 0, 0], stars: [...old.stars, 0, 0, 0] };
+      const padding = Array(LEVELS.length - old.best.length).fill(0);
+      const expected = { unlocked: finished ? 4 : 3, best: [...old.best, ...padding], stars: [...old.stars, ...padding] };
       check(`v1 ${finished ? 'completed' : 'uncompleted'} third route migrates without losing scores`, await page.evaluate(() => JSON.parse(JSON.stringify(save.records.campaign))), expected);
-      check('legacy progress keeps the correct next-route lock', await page.locator('.route:disabled').count(), finished ? 2 : 3);
+      check('legacy progress keeps the correct next-route lock', await page.locator('.route:disabled').count(), LEVELS.length - expected.unlocked);
       await page.evaluate(() => { startLevel(save.records.campaign.unlocked); });
       check('a locked route cannot be started via the game API', await page.evaluate(() => game.mode), 'home');
       await page.locator('#start').click();
@@ -82,10 +85,10 @@ async function verifyMigration({ browser, target, errors, check }) {
         }
         step(1 / 120);
       });
-      check('migrated progress writes v3 and preserves the v1 source', await page.evaluate(() => {
+      check('migrated progress writes v3 and preserves the v1 source', await page.evaluate(count => {
         const current = JSON.parse(localStorage.getItem('pelican-pedal-run-v3')).records.campaign;
-        return current.best.length === 6 && current.stars.length === 6 && current.unlocked === save.records.campaign.unlocked && localStorage.getItem('pelican-pedal-run-v1') !== null;
-      }));
+        return current.best.length === count && current.stars.length === count && current.unlocked === save.records.campaign.unlocked && localStorage.getItem('pelican-pedal-run-v1') !== null;
+      }, LEVELS.length));
       await page.reload(); await waitForGame(page);
       check('v3 reload retains the migrated legacy stars', await page.evaluate(() => save.records.campaign.stars), expected.stars);
     } finally { await context.close(); }
@@ -127,20 +130,21 @@ async function verifyPreferences({ browser, target, errors, check }) {
 }
 
 async function verifyEnglish({ browser, target, errors, check }) {
+  const { LEVELS } = await levelData;
   const { messages } = await import(pathToFileURL(path.resolve(__dirname, '../src/locales.js')).href);
   const t = messages.en;
   const { context, page } = await openOffline(browser, target, errors, { locale: 'en-US' });
   try {
     check('English device language is detected', await page.locator('html').getAttribute('lang'), 'en');
     check('English home heading is localized', await page.locator('h1').textContent().then(text => t.headline.every(part => text.includes(part))));
-    check('all six routes have their own style class', await page.locator('.route').evaluateAll(buttons => ['coast', 'jungle', 'temple', 'desert', 'skull', 'shanghai'].every((id, index) => buttons[index]?.classList.contains(id))));
-    check('all six route names are English', await page.locator('.route-name').allTextContents(), ['Coral Coast', 'Jungle Ruins', 'Sunset Temple', 'Desert Dunes', 'Skull Island', 'The Bund']);
+    check('every route has its own style class', await page.locator('.route').evaluateAll((buttons, ids) => buttons.length === ids.length && ids.every((id, index) => buttons[index].classList.contains(id)), LEVELS.map(level => level.id)));
+    check('all route names are English', await page.locator('.route-name').allTextContents(), LEVELS.map(level => level.en));
     await page.locator('#help-open').click();
     const help = await page.locator('#help').textContent();
     check('English help translates title, instructions and note', [t.helpTitle, t.helpNote, t.understood, ...t.helpRows.flat()].every(value => help.includes(value)));
     check('English help contains no Chinese text', !/[\u3400-\u9fff]/.test(help));
     await page.locator('#help-close').click(); await page.locator('#start').click();
-    check('English HUD includes route name and six-stage count', await page.evaluate(() => $('level-name').textContent.includes('Coral Coast') && $('stage-count').textContent === '1 / 6'));
+    check('English HUD includes route name and the full stage count', await page.evaluate(count => $('level-name').textContent.includes('Coral Coast') && $('stage-count').textContent === `1 / ${count}`, LEVELS.length));
     check('English health and touch labels are localized', await page.evaluate(() => $('hearts').getAttribute('aria-label') === '3 health remaining' && document.querySelector('[data-action="left"]').getAttribute('aria-label') === 'Steer left'));
     check('English start toast is localized', await page.locator('#toast').innerText().then(text => text.includes('Route 1') && !/[\u3400-\u9fff]/.test(text)));
     await page.locator('#pause').click();
@@ -152,13 +156,13 @@ async function verifyEnglish({ browser, target, errors, check }) {
     const lost = await page.locator('#result').textContent();
     check('English defeat dialog is fully translated', [t.modes.campaign, t.lostTitle, t.lostDesc, t.retry, t.home, t.rideStat, t.fishStat, t.totalScore].every(value => lost.includes(value)));
     await page.locator('#next').click();
-    for (let level = 0; level < 6; level++) {
+    for (let level = 0; level < LEVELS.length; level++) {
       const result = await rideToFinish(page);
       check(`English route ${level + 1} completes with three health and three stars`, [result.mode, result.hp, result.stars], ['won', 3, 3]);
       await page.waitForFunction(() => !$('result').hidden, null, { polling: 50 });
       const won = await page.locator('#result').textContent();
-      check(`English route ${level + 1} victory dialog is translated`, [level === 5 ? t.allTitle : t.wonTitle, t.modes.campaign, level === 5 ? t.again : t.next, t.home].every(value => won.includes(value)) && !/[\u3400-\u9fff]/.test(won));
-      if (level < 5) await page.locator('#next').click();
+      check(`English route ${level + 1} victory dialog is translated`, [level === LEVELS.length - 1 ? t.allTitle : t.wonTitle, t.modes.campaign, level === LEVELS.length - 1 ? t.again : t.next, t.home].every(value => won.includes(value)) && !/[\u3400-\u9fff]/.test(won));
+      if (level < LEVELS.length - 1) await page.locator('#next').click();
     }
     await page.locator('#result-home').click();
     await page.locator('#language').click(); await page.reload(); await waitForGame(page);
@@ -219,19 +223,22 @@ async function verifyOnline({ browser, errors, check }) {
 
 
 async function verifyStorageIntegration({ browser, target, errors, check }) {
+  const { LEVELS } = await levelData;
   const old = { unlocked: 4, best: [1800, 2400, 3200, 1000, 0, 0], stars: [3, 2, 3, 0, 0, 0] };
+  const padding = Array(LEVELS.length - old.best.length).fill(0);
+  const expected = { ...old, best: [...old.best, ...padding], stars: [...old.stars, ...padding] };
   const key = 'pelican-pedal-run-v2', raw = JSON.stringify(old);
   const migrated = await openOffline(browser, target, errors, { seedStorage: { [key]: raw } });
   try {
-    check('v2 progress loads into campaign without changing the source', await migrated.page.evaluate(() => save.records.campaign), old);
+    check('v2 progress expands campaign without changing legacy results', await migrated.page.evaluate(() => save.records.campaign), expected);
     await migrated.page.evaluate(() => startRun({ gameMode: 'items', levelIndex: 0, seed: 27 }));
     const result = await rideToFinish(migrated.page);
     check('new-mode completion after migration preserves legacy campaign records', result.mode, 'won');
-    check('v3 write contains separate new-mode results and unchanged v2 bytes', await migrated.page.evaluate(({ key, raw, old }) => {
+    check('v3 write contains separate new-mode results and unchanged v2 bytes', await migrated.page.evaluate(({ key, raw, expected }) => {
       const v3 = JSON.parse(localStorage.getItem('pelican-pedal-run-v3'));
-      return localStorage.getItem(key) === raw && JSON.stringify(v3.records.campaign) === JSON.stringify(old)
+      return localStorage.getItem(key) === raw && JSON.stringify(v3.records.campaign) === JSON.stringify(expected)
         && v3.records.items.best[0] === game.result.score && v3.records.items.unlocked === 2;
-    }, { key, raw, old }));
+    }, { key, raw, expected }));
   } finally { await migrated.context.close(); }
   const corrupt = '{broken-v3';
   const blocked = await openOffline(browser, target, errors, { seedStorage: { 'pelican-pedal-run-v3': corrupt, [key]: raw } });

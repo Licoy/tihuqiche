@@ -4,6 +4,7 @@ import QRCode from 'qrcode';
 import { buildShareText, shareUrl, copyShare } from '../src/share.js';
 import { SHARE_QR } from '../src/share-qr.js';
 import { renderSeo } from '../src/seo.js';
+import { LEVELS } from '../src/levels.js';
 
 const run = overrides => ({ gameMode: 'campaign', levelIndex: 0, score: 1000, distance: 600.9,
   fishCollected: 35, fishBalance: 15, outcome: 'won', ...overrides });
@@ -30,7 +31,7 @@ test('all bilingual modes include result score, cumulative fish, distance and of
 test('failed games can share, invalid results are rejected explicitly', () => {
   assert.match(buildShareText(run({ outcome: 'lost' }), 'zh'), /1000/);
   for (const patch of [{ score: -1 }, { score: 2.4 }, { score: Infinity }, { distance: NaN },
-    { fishCollected: -1 }, { fishCollected: 1.1 }, { levelIndex: 6 }, { levelIndex: null },
+    { fishCollected: -1 }, { fishCollected: 1.1 }, { levelIndex: LEVELS.length }, { levelIndex: null },
     { gameMode: 'bad' }, { gameMode: 'endless', levelIndex: 0 }]) {
     assert.throws(() => buildShareText(run(patch), 'en'), /Invalid/);
   }
@@ -84,7 +85,8 @@ test('bilingual SEO shares canonical URLs and declares single-player and local c
     const schema = JSON.parse(json);
     assert.equal(schema.url, shareUrl(locale));
     assert.deepEqual(schema.playMode, ['https://schema.org/SinglePlayer', 'https://schema.org/MultiPlayer', 'https://schema.org/CoOp']);
-    assert.equal(schema.hasPart.length, 6);
+    assert.equal(schema.hasPart.length, LEVELS.length);
+    assert.deepEqual(schema.hasPart.map(part => part.name), LEVELS.map(level => locale === 'en' ? level.en : level.name));
     assert.match(schema.description, locale === 'en' ? /local keyboard co-op on PC/ : /电脑本地键盘双人合作/);
     assert.equal(schema.isAccessibleForFree, true);
   }

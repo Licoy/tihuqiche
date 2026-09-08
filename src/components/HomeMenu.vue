@@ -14,8 +14,8 @@ function start() {
 </script>
 <template>
   <main id="home" :hidden="state.mode !== 'home'">
-    <h1>{{ copy.headline[0] }}{{ locale === 'en' ? ' ' : '' }}<br v-if="locale === 'en'"><span>{{ copy.headline[1] }}</span></h1>
-    <p class="intro">{{ copy.intro[0] }}<br>{{ copy.intro[1] }}</p>
+    <div class="home-intro"><h1>{{ copy.headline[0] }}{{ locale === 'en' ? ' ' : '' }}<br v-if="locale === 'en'"><span>{{ copy.headline[1] }}</span></h1>
+    <p class="intro">{{ copy.intro[0] }}<br>{{ copy.intro[1] }}</p></div>
     <div class="mode-picker" :aria-label="copy.modeLabel"><button v-for="(label, mode) in copy.modes" :key="mode" :data-mode="mode" :aria-pressed="selectedMode === mode" @click="selectMode(mode)">{{ label }}</button></div>
     <p class="mode-note">{{ copy.modeNotes[selectedMode] }}</p>
     <p v-if="selectedMode === 'duo'" class="duo-instructions">{{ isMobile ? copy.mobileDuo : copy.duoKeys }}</p>
